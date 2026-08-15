@@ -107,7 +107,7 @@ erDiagram
     %% RELATIONSHIPS
     %% =====================================================
 
-    PERTANYAAN }o--o| FAQ : "menjadi FAQ"
+    PERTANYAAN }o--o| FAQ : "terkait dengan"
 
     SKD ||--o{ RESPONDEN_SKD : "memiliki"
 
