@@ -121,7 +121,7 @@ st.caption("Jaringan Agregasi Layanan dan Akuntabilitas BPS Kabupaten Kepulauan 
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📊 Overview Kunjungan PST", 
     "📩 Saran & Pengaduan", 
-    "❓ Pertanyaan dan FAQ", 
+    "❓ Pertanyaan & FAQ", 
     "📈 Progres SKD",
     "🌐 Pemutakhiran Kanal Digital"
 ])
