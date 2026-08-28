@@ -49,7 +49,7 @@ st.markdown(
 
         /* Naikkan title JALA-SERIBU sedikit */
         div[data-testid="stHeadingWithActionElements"]:first-of-type {
-            margin-top: -1px !important;
+            margin-top: -13px !important;
         }
 
         /* Naikkan caption pertama sedikit */
