@@ -20,10 +20,7 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-        /* =========================================
-        HIDE STREAMLIT TOOLBAR
-        ========================================= */
-
+        /* Hide Streamlit Toolbar */
         [data-testid="stToolbar"] {
             display: none !important;
         }
@@ -35,10 +32,10 @@ st.markdown(
         [data-testid="stStatusWidget"] {
             display: none !important;
         }
-        
+
         /* Mengurangi padding atas halaman */
         .block-container {
-            padding-top: 1rem !important;
+            padding-top: 2rem !important;
             padding-bottom: 1rem !important;
         }
 
@@ -48,6 +45,16 @@ st.markdown(
             color: #002B6A !important;
             margin-bottom: 0px !important;
             padding-bottom: 5px !important;
+        }
+
+        /* Naikkan title JALA-SERIBU sedikit */
+        div[data-testid="stHeadingWithActionElements"]:first-of-type {
+            margin-top: -1px !important;
+        }
+
+        /* Naikkan caption pertama sedikit */
+        div[data-testid="stCaptionContainer"]:first-of-type {
+            margin-top: -4px !important;
         }
 
         /* Caption khusus baris update + periode + download */
