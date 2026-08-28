@@ -4,6 +4,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from services.google_sheets import get_google_sheet_data
+from datetime import datetime
+from zoneinfo import ZoneInfo
+from io import BytesIO
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 # --- CONFIG HALAMAN ---
 st.set_page_config(
@@ -30,10 +34,12 @@ st.markdown(
             padding-bottom: 5px !important;
         }
 
-        /* Mengatur jarak atas caption agar mepet ke judul */
-        div[data-testid="stCaptionContainer"] {
+        /* Caption khusus baris update + periode + download */
+        div[data-testid="stHorizontalBlock"]:has(
+            div[data-testid="stSelectbox"]
+        ) div[data-testid="stCaptionContainer"] {
             margin-top: -5px !important;
-            margin-bottom: -20px !important; 
+            margin-bottom: -20px !important;
             padding-top: 0px !important;
         }
 
@@ -47,6 +53,7 @@ st.markdown(
             border-radius: 12px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
+            min-height: 130px;
         }
         
         /* Efek Hover */
@@ -109,6 +116,189 @@ st.markdown(
             padding: 16px !important;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
         }
+
+        div[data-testid="stDownloadButton"] button {
+            width: 105px !important;
+            min-width: 105px !important;
+            max-width: 105px !important;
+
+            height: 30px !important;
+            min-height: 30px !important;
+
+            padding: 3px 7px !important;
+            white-space: nowrap !important;
+        }
+
+        /* Ukuran tulisan */
+        div[data-testid="stDownloadButton"] button p {
+            font-size: 13px !important;
+        }
+
+        div[data-testid="stDownloadButton"] button:hover {
+            background: #F0F7FF !important;
+            border-color: #64B5F6 !important;
+            color: #0D47A1 !important;
+        }
+
+        div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+            min-height: 30px !important;
+            height: 30px !important;
+            font-size: 13px !important;
+            padding-top: 0px !important;
+            padding-bottom: 0px !important;
+        }
+
+        /* Wrapper isi selectbox: teks + ikon */
+        div[data-testid="stSelectbox"]
+        div[data-baseweb="select"] > div > div {
+            min-height: 30px !important;
+            height: 30px !important;
+
+            display: flex !important;
+            align-items: center !important;
+
+            padding-top: 1px !important;
+            padding-bottom: 0px !important;
+            box-sizing: border-box !important;
+        }
+
+        /* Teks pilihan */
+        div[data-testid="stSelectbox"]
+        div[data-baseweb="select"] div[value] {
+            line-height: 1 !important;
+            padding-top: 8.5px !important;
+            margin: 0 !important;
+            transform: none !important;
+        }
+
+        /* =========================================
+        UPDATE + PERIODE + DOWNLOAD AUTO RESPONSIVE
+        ========================================= */
+
+        div[data-testid="stHorizontalBlock"]:has(
+            div[data-testid="stSelectbox"]
+        ) {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            align-items: center !important;
+
+            column-gap: 12px !important;
+            row-gap: 6px !important;
+
+            margin-top: -11px !important;
+            margin-bottom: 1px !important;
+        }
+
+        /* Update fleksibel */
+        div[data-testid="stHorizontalBlock"]:has(
+            div[data-testid="stSelectbox"]
+        ) > div:nth-child(1) {
+            flex: 1 1 420px !important;
+            width: auto !important;
+            min-width: 280px !important;
+        }
+
+        /* Periode fleksibel */
+        div[data-testid="stHorizontalBlock"]:has(
+            div[data-testid="stSelectbox"]
+        ) > div:nth-child(2) {
+            flex: 0 1 230px !important;
+            width: auto !important;
+            min-width: 180px !important;
+            max-width: 230px !important;
+        }
+
+        /* Download tetap */
+        div[data-testid="stHorizontalBlock"]:has(
+            div[data-testid="stSelectbox"]
+        ) > div:nth-child(3) {
+            flex: 0 0 105px !important;
+            width: 105px !important;
+            min-width: 105px !important;
+            max-width: 105px !important;
+            margin: 0 !important;
+        }
+
+        /* Selectbox ikut ruang yang tersedia */
+        div[data-testid="stSelectbox"] {
+            width: 100% !important;
+            max-width: 230px !important;
+        }
+
+        /* Tombol download */
+        div[data-testid="stDownloadButton"] {
+            display: flex !important;
+            justify-content: flex-start !important;
+        }
+
+        /* =========================================
+        RESPONSIVE - MOBILE
+        ========================================= */
+        @media (max-width: 700px) {
+
+            /*
+            Periode + download mengikuti
+            layout auto-responsive di atas.
+            */
+
+            /* Metric cards vertikal */
+            div[data-testid="stHorizontalBlock"]:has(
+                div[data-testid="stMetric"]
+            ) {
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+
+            div[data-testid="stHorizontalBlock"]:has(
+                div[data-testid="stMetric"]
+            ) > div {
+                width: 100% !important;
+                min-width: 100% !important;
+                flex: 0 0 auto !important;
+            }
+
+            /* Chart vertikal */
+            div[data-testid="stHorizontalBlock"]:has(
+                div[data-testid="stPlotlyChart"]
+            ) {
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+
+            div[data-testid="stHorizontalBlock"]:has(
+                div[data-testid="stPlotlyChart"]
+            ) > div {
+                width: 100% !important;
+                min-width: 100% !important;
+                flex: 0 0 auto !important;
+            }
+        }
+
+
+        /* =========================================
+        MOBILE SANGAT KECIL
+        ========================================= */
+        @media (max-width: 380px) {
+
+            /* Kalau benar-benar sempit, baru kontrol ditumpuk */
+            div[data-testid="stHorizontalBlock"]:has(
+                div[data-testid="stSelectbox"]
+            ) > div:nth-child(2),
+            div[data-testid="stHorizontalBlock"]:has(
+                div[data-testid="stSelectbox"]
+            ) > div:nth-child(3) {
+                flex: 0 0 100% !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+            }
+
+            div[data-testid="stSelectbox"] {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+        }        
+
     </style>
 """,
     unsafe_allow_html=True,
@@ -118,6 +308,595 @@ st.markdown(
 st.title("🌊 JALA-SERIBU")
 st.caption("Jaringan Agregasi Layanan dan Akuntabilitas BPS Kabupaten Kepulauan Seribu")
 
+# --- GLOBAL CONSTANTA ---
+kategori_jenis_tamu = [
+    "Masyarakat Umum/Mahasiswa",
+    "Mitra Statistik",
+    "Instansi/Dinas",
+    "Lainnya"
+]
+
+kategori_keperluan = [
+    "Konsultasi Data",
+    "Tugas Mitra",
+    "Kepentingan Dinas",
+    "Bertemu Orang",
+    "Lainnya"
+]
+
+# --- HELPER FUNCTIONS ---
+def buat_excel_overview(
+    df_ringkasan,
+    data_kunjungan,
+    data_jenis,
+    df_mentah,
+    rekap_bulanan=None, 
+    nama_periode=None
+):
+    output = BytesIO()
+
+    if nama_periode:
+        bagian_periode = nama_periode.split("_")
+
+        if bagian_periode[0] == "Triwulan":
+            nomor_triwulan = int(bagian_periode[1])
+            tahun_periode = bagian_periode[2]
+
+            romawi = {
+                1: "I",
+                2: "II",
+                3: "III",
+                4: "IV"
+            }
+
+            judul_periode = (
+                f"TRIWULAN {romawi[nomor_triwulan]} "
+                f"TAHUN {tahun_periode}"
+            )
+
+        else:
+            judul_periode = nama_periode.replace("_", " ").upper()
+
+    else:
+        judul_periode = ""
+
+            # =========================
+            # WARNA & STYLE DASAR
+            # =========================
+    biru = "1F4E78"
+    putih = "FFFFFF"
+
+    garis_tipis = Side(
+        style="thin",
+        color="000000"
+    )
+
+    border_tabel = Border(
+        left=garis_tipis,
+        right=garis_tipis,
+        top=garis_tipis,
+        bottom=garis_tipis
+    )
+
+    fill_header = PatternFill(
+        fill_type="solid",
+        fgColor=biru
+    )
+
+    font_header = Font(
+        bold=True,
+        color=putih
+    )
+
+    align_center = Alignment(
+        horizontal="center",
+        vertical="center",
+        wrap_text=True
+    )
+
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+
+        df_ringkasan.to_excel(
+            writer,
+            index=False,
+            sheet_name="Ringkasan"
+        )
+
+        ws_ringkasan = writer.sheets["Ringkasan"]
+
+        # Sisipkan 2 baris di atas untuk judul
+        ws_ringkasan.insert_rows(1, amount=2)
+
+        # Judul periode
+        ws_ringkasan.merge_cells("A1:B1")
+        ws_ringkasan["A1"] = judul_periode
+        ws_ringkasan["A1"].font = Font(
+            bold=True,
+            size=14
+        )
+        ws_ringkasan["A1"].alignment = Alignment(
+            horizontal="center",
+            vertical="center"
+        )
+
+        # Header sekarang pindah ke baris 3
+        for cell in ws_ringkasan[3]:
+            cell.fill = fill_header
+            cell.font = font_header
+            cell.alignment = align_center
+            cell.border = border_tabel
+
+        # Isi tabel
+        for row in ws_ringkasan.iter_rows(
+            min_row=4,
+            max_row=ws_ringkasan.max_row,
+            min_col=1,
+            max_col=2
+        ):
+            for cell in row:
+                cell.border = border_tabel
+                cell.alignment = Alignment(
+                    vertical="center"
+                )
+
+        # Kolom Nilai dibuat center
+        for row in range(4, ws_ringkasan.max_row + 1):
+            ws_ringkasan.cell(
+                row=row,
+                column=2
+            ).alignment = align_center
+
+        # Lebar kolom
+        ws_ringkasan.column_dimensions["A"].width = 32
+        ws_ringkasan.column_dimensions["B"].width = 28
+
+        data_kunjungan.to_excel(
+            writer,
+            index=False,
+            sheet_name="Keperluan Kunjungan"
+        )
+
+        ws_keperluan = writer.sheets["Keperluan Kunjungan"]
+
+        # Sisipkan 2 baris untuk judul
+        ws_keperluan.insert_rows(1, amount=2)
+
+        # Judul periode
+        ws_keperluan.merge_cells("A1:B1")
+        ws_keperluan["A1"] = judul_periode
+        ws_keperluan["A1"].font = Font(
+            bold=True,
+            size=14
+        )
+        ws_keperluan["A1"].alignment = align_center
+
+        # Header
+        for cell in ws_keperluan[3]:
+            cell.fill = fill_header
+            cell.font = font_header
+            cell.alignment = align_center
+            cell.border = border_tabel
+
+        # Isi tabel
+        for row in ws_keperluan.iter_rows(
+            min_row=4,
+            max_row=ws_keperluan.max_row,
+            min_col=1,
+            max_col=2
+        ):
+            for cell in row:
+                cell.border = border_tabel
+                cell.alignment = Alignment(
+                    vertical="center"
+                )
+
+        # Kolom jumlah dibuat center
+        for row in range(4, ws_keperluan.max_row + 1):
+            ws_keperluan.cell(
+                row=row,
+                column=2
+            ).alignment = align_center
+
+        # Lebar kolom
+        ws_keperluan.column_dimensions["A"].width = 28
+        ws_keperluan.column_dimensions["B"].width = 20
+
+        data_jenis.to_excel(
+            writer,
+            index=False,
+            sheet_name="Jenis Tamu"
+        )
+
+        ws_jenis = writer.sheets["Jenis Tamu"]
+
+        # Sisipkan 2 baris untuk judul
+        ws_jenis.insert_rows(1, amount=2)
+
+        # Judul periode
+        ws_jenis.merge_cells("A1:B1")
+        ws_jenis["A1"] = judul_periode
+        ws_jenis["A1"].font = Font(
+            bold=True,
+            size=14
+        )
+        ws_jenis["A1"].alignment = align_center
+
+        # Header
+        for cell in ws_jenis[3]:
+            cell.fill = fill_header
+            cell.font = font_header
+            cell.alignment = align_center
+            cell.border = border_tabel
+
+        # Isi tabel
+        for row in ws_jenis.iter_rows(
+            min_row=4,
+            max_row=ws_jenis.max_row,
+            min_col=1,
+            max_col=2
+        ):
+            for cell in row:
+                cell.border = border_tabel
+                cell.alignment = Alignment(
+                    vertical="center"
+                )
+
+        # Kolom jumlah dibuat center
+        for row in range(4, ws_jenis.max_row + 1):
+            ws_jenis.cell(
+                row=row,
+                column=2
+            ).alignment = align_center
+
+        # Lebar kolom
+        ws_jenis.column_dimensions["A"].width = 30
+        ws_jenis.column_dimensions["B"].width = 14
+
+        df_mentah.to_excel(
+            writer,
+            index=False,
+            sheet_name="Data Mentah"
+        )
+
+        ws_mentah = writer.sheets["Data Mentah"]
+
+        # Freeze header
+        ws_mentah.freeze_panes = "A2"
+
+        # Autofilter
+        ws_mentah.auto_filter.ref = ws_mentah.dimensions
+
+        # Style header
+        for cell in ws_mentah[1]:
+            cell.fill = fill_header
+            cell.font = font_header
+            cell.alignment = align_center
+            cell.border = border_tabel
+
+        # Style isi tabel
+        for row in ws_mentah.iter_rows(
+            min_row=2,
+            max_row=ws_mentah.max_row,
+            min_col=1,
+            max_col=ws_mentah.max_column
+        ):
+            for cell in row:
+                cell.border = border_tabel
+                cell.alignment = Alignment(
+                    vertical="center"
+                )
+
+        # Mapping nama header ke nomor kolom
+        header_map = {
+            cell.value: cell.column
+            for cell in ws_mentah[1]
+        }
+
+
+        # Format tanggal
+        if "Tanggal Kehadiran" in header_map:
+            kolom_tanggal = header_map["Tanggal Kehadiran"]
+
+            for row in range(2, ws_mentah.max_row + 1):
+                ws_mentah.cell(
+                    row=row,
+                    column=kolom_tanggal
+                ).number_format = "dd/mm/yyyy"
+
+
+        # Format jam
+        for nama_kolom in ["Jam Datang", "Jam Pulang"]:
+            if nama_kolom in header_map:
+                nomor_kolom = header_map[nama_kolom]
+
+                for row in range(2, ws_mentah.max_row + 1):
+                    ws_mentah.cell(
+                        row=row,
+                        column=nomor_kolom
+                    ).number_format = "hh:mm"
+
+        # Lebar kolom
+        lebar_kolom = {
+            "Timestamp": 22,
+            "Nama": 24,
+            "Jenis Tamu": 30,
+            "Keterangan Tamu": 30,
+            "Keperluan": 24,
+            "Detail Keperluan": 36,
+            "Tanggal Kehadiran": 18,
+            "Jam Datang": 14,
+            "Jam Pulang": 14,
+        }
+
+
+        for nama_kolom, lebar in lebar_kolom.items():
+            if nama_kolom in header_map:
+                huruf_kolom = ws_mentah.cell(
+                    row=1,
+                    column=header_map[nama_kolom]
+                ).column_letter
+
+                ws_mentah.column_dimensions[
+                    huruf_kolom
+                ].width = lebar
+
+        if rekap_bulanan is not None:
+
+            rekap_bulanan.to_excel(
+                writer,
+                index=False,
+                header=False,
+                sheet_name="Rekap Bulanan",
+                startrow=4
+            )
+
+            ws_rekap = writer.sheets["Rekap Bulanan"]
+
+            # =========================
+            # JUDUL PERIODE
+            # =========================
+            ws_rekap.merge_cells("A1:G1")
+            ws_rekap["A1"] = judul_periode
+
+            ws_rekap["A1"].font = Font(
+                bold=True,
+                size=14
+            )
+
+            ws_rekap["A1"].alignment = align_center
+
+            # =========================
+            # HEADER BERTINGKAT
+            # =========================
+            ws_rekap.merge_cells("A3:A4")
+            ws_rekap.merge_cells("B3:F3")
+            ws_rekap.merge_cells("G3:G4")
+
+            ws_rekap["A3"] = "Bulan"
+            ws_rekap["B3"] = "Keperluan"
+            ws_rekap["G3"] = "Jumlah"
+
+            ws_rekap["B4"] = "Konsultasi Data"
+            ws_rekap["C4"] = "Tugas Mitra"
+            ws_rekap["D4"] = "Kepentingan Dinas"
+            ws_rekap["E4"] = "Bertemu Orang"
+            ws_rekap["F4"] = "Lainnya"
+
+            # Style header
+            for row in ws_rekap.iter_rows(
+                min_row=3,
+                max_row=4,
+                min_col=1,
+                max_col=7
+            ):
+                for cell in row:
+                    cell.fill = fill_header
+                    cell.font = font_header
+                    cell.alignment = align_center
+                    cell.border = border_tabel
+
+            # =========================
+            # ISI TABEL
+            # =========================
+            for row in ws_rekap.iter_rows(
+                min_row=5,
+                max_row=ws_rekap.max_row,
+                min_col=1,
+                max_col=7
+            ):
+                for cell in row:
+                    cell.border = border_tabel
+                    cell.alignment = align_center
+
+            # Bulan rata kiri
+            for row in range(5, ws_rekap.max_row + 1):
+                ws_rekap.cell(
+                    row=row,
+                    column=1
+                ).alignment = Alignment(
+                    horizontal="left",
+                    vertical="center"
+                )
+
+            # =========================
+            # LEBAR KOLOM
+            # =========================
+            ws_rekap.column_dimensions["A"].width = 14
+            ws_rekap.column_dimensions["B"].width = 20
+            ws_rekap.column_dimensions["C"].width = 16
+            ws_rekap.column_dimensions["D"].width = 20
+            ws_rekap.column_dimensions["E"].width = 18
+            ws_rekap.column_dimensions["F"].width = 14
+            ws_rekap.column_dimensions["G"].width = 12
+
+    return output.getvalue()
+
+def siapkan_data_excel(df_periode):
+    # Total tamu
+    total_tamu = len(df_periode)
+
+    # Keperluan
+    data_kunjungan = (
+        df_periode["Keperluan"]
+        .value_counts()
+        .reindex(
+            kategori_keperluan,
+            fill_value=0
+        )
+        .rename_axis("Keperluan Kunjungan")
+        .reset_index(name="Jumlah Kunjungan")
+    )
+
+    # Jenis tamu
+    data_jenis = (
+        df_periode["Jenis Tamu"]
+        .value_counts()
+        .reindex(
+            kategori_jenis_tamu,
+            fill_value=0
+        )
+        .rename_axis("Jenis Tamu")
+        .reset_index(name="Jumlah")
+    )
+
+    # Keperluan terbanyak
+    if not data_kunjungan.empty:
+        keperluan_terbanyak = (
+            data_kunjungan
+            .sort_values("Jumlah Kunjungan", ascending=False)
+            .iloc[0]["Keperluan Kunjungan"]
+        )
+    else:
+        keperluan_terbanyak = "-"
+
+    # Durasi
+    tanggal_string = df_periode[
+        "Tanggal Kehadiran"
+    ].dt.strftime("%Y-%m-%d")
+
+    waktu_datang = pd.to_datetime(
+        tanggal_string + " " + df_periode["Jam Datang"].astype(str),
+        errors="coerce"
+    )
+
+    waktu_pulang = pd.to_datetime(
+        tanggal_string + " " + df_periode["Jam Pulang"].astype(str),
+        errors="coerce"
+    )
+
+    durasi = (
+        waktu_pulang - waktu_datang
+    ).dt.total_seconds() / 60
+
+    durasi = durasi[durasi >= 0]
+
+    if not durasi.empty:
+        nilai_durasi = f"{durasi.mean():.0f} Menit"
+    else:
+        nilai_durasi = "-"
+
+    # Ringkasan
+    df_ringkasan = pd.DataFrame({
+        "Indikator": [
+            "Total Tamu",
+            "Keperluan Terbanyak",
+            "Rata-Rata Waktu Kunjungan"
+        ],
+        "Nilai": [
+            f"{total_tamu} Orang",
+            keperluan_terbanyak,
+            nilai_durasi
+        ]
+    })
+
+    return (
+        df_ringkasan,
+        data_kunjungan,
+        data_jenis
+    )
+
+def get_triwulan(bulan):
+    if bulan <= 3:
+        return 1
+    elif bulan <= 6:
+        return 2
+    elif bulan <= 9:
+        return 3
+    else:
+        return 4
+
+def buat_rekap_bulanan(
+    df_periode,
+    nama_bulan,
+    tambah_total=False,
+    bulan_wajib=None
+):
+
+    df_temp = df_periode.copy()
+
+    df_temp["Bulan"] = (
+        df_temp["Tanggal Kehadiran"]
+        .dt.month
+        .map(lambda x: nama_bulan[x])
+    )
+
+    rekap = pd.crosstab(
+        df_temp["Bulan"],
+        df_temp["Keperluan"]
+    )
+
+    # Pastikan bulan yang tidak punya data tetap muncul
+    if bulan_wajib is not None:
+        rekap = rekap.reindex(
+            bulan_wajib,
+            fill_value=0
+        )
+
+    # Pastikan semua kategori selalu ada
+    for kategori in kategori_keperluan:
+        if kategori not in rekap.columns:
+            rekap[kategori] = 0
+
+    rekap = rekap[kategori_keperluan]
+
+    rekap["Jumlah"] = rekap.sum(axis=1)
+
+    rekap = rekap.reset_index()
+
+    urutan_bulan = {
+        nama_bulan[i]: i
+        for i in range(1, 13)
+    }
+
+    rekap["_urutan"] = rekap["Bulan"].map(urutan_bulan)
+
+    rekap = (
+        rekap
+        .sort_values("_urutan")
+        .drop(columns="_urutan")
+        .reset_index(drop=True)
+    )
+
+    # Tambahkan baris total
+    if tambah_total:
+        baris_total = {
+            "Bulan": "Jumlah"
+        }
+
+        for kolom in kategori_keperluan:
+            baris_total[kolom] = rekap[kolom].sum()
+
+        baris_total["Jumlah"] = rekap["Jumlah"].sum()
+
+        rekap = pd.concat(
+            [
+                rekap,
+                pd.DataFrame([baris_total])
+            ],
+            ignore_index=True
+        )
+
+    return rekap
 
 # --- TAB UTAMA ---
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
@@ -134,40 +913,33 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 with tab1:
     from services.google_sheets import get_google_sheet_data
 
-
-with tab1:
-
-    # Auto-update bagian Overview setiap 2 detik
-    @st.fragment(run_every="2s")
+    @st.fragment(run_every="1h") # Auto-update setiap 1 jam
     def overview_kunjungan_pst():
 
+        # Ambil Google Sheets
         df = get_google_sheet_data()
-
+        
         if df.empty:
             st.warning("Belum ada data kunjungan.")
             return
 
-        # =========================
-        # PREPROCESSING DATA
-        # =========================
+        # Ambil waktu update
+        waktu_update = datetime.now(
+            ZoneInfo("Asia/Jakarta")
+        ).strftime("%d/%m/%Y %H:%M WIB")
 
+        # --- PREPROCESSING DATA ---
         df["Tanggal Kehadiran"] = pd.to_datetime(
             df["Tanggal Kehadiran"],
             errors="coerce"
         )
 
-        # Buang baris yang tanggalnya tidak valid
+        # Buang baris yang tanggalnya tidak valid / NA
         df = df.dropna(subset=["Tanggal Kehadiran"])
 
         if df.empty:
             st.warning("Data tanggal kunjungan belum valid.")
             return
-
-        # Ambil bulan terbaru yang tersedia di Google Sheets
-        tanggal_terbaru = df["Tanggal Kehadiran"].max()
-
-        tahun_aktif = tanggal_terbaru.year
-        bulan_aktif = tanggal_terbaru.month
 
         nama_bulan = [
             "",
@@ -176,53 +948,211 @@ with tab1:
             "September", "Oktober", "November", "Desember"
         ]
 
-        # Data bulan aktif
-        df_bulan = df[
-            (df["Tanggal Kehadiran"].dt.year == tahun_aktif) &
-            (df["Tanggal Kehadiran"].dt.month == bulan_aktif)
-        ].copy()
-
-        # Bulan sebelumnya
-        periode_aktif = pd.Period(
-            f"{tahun_aktif}-{bulan_aktif:02d}",
-            freq="M"
+        periode_bulan_tersedia = (
+            df["Tanggal Kehadiran"]
+            .dt.to_period("M")
+            .drop_duplicates()
+            .sort_values(ascending=False)
+            .tolist()
         )
 
-        periode_lalu = periode_aktif - 1
+        opsi_periode = []
 
-        df_bulan_lalu = df[
-            (df["Tanggal Kehadiran"].dt.year == periode_lalu.year) &
-            (df["Tanggal Kehadiran"].dt.month == periode_lalu.month)
-        ].copy()
+        for periode in periode_bulan_tersedia:
+            opsi_periode.append(
+                f"{nama_bulan[periode.month]} {periode.year}"
+            )
 
-        st.subheader(
-            f"Ringkasan Kunjungan PST "
-            f"{nama_bulan[bulan_aktif]} {tahun_aktif}"
+        # Opsi Triwulan
+        triwulan_tersedia = set()
+
+        for periode in periode_bulan_tersedia:
+            nomor_triwulan = get_triwulan(periode.month)
+
+            triwulan_tersedia.add(
+                (periode.year, nomor_triwulan)
+            )
+
+        romawi = {
+            1: "I",
+            2: "II",
+            3: "III",
+            4: "IV"
+        }
+
+        romawi_ke_angka = {
+            "I": 1,
+            "II": 2,
+            "III": 3,
+            "IV": 4
+        }
+
+        for tahun, triwulan in sorted(
+            triwulan_tersedia,
+            reverse=True
+        ):
+            opsi_periode.append(
+                f"Triwulan {romawi[triwulan]} {tahun}"
+            )
+
+        # =========================
+        # PILIH PERIODE DASHBOARD
+        # =========================
+
+        # Placeholder judul supaya tetap tampil di atas baris kontrol
+        judul_dashboard = st.empty()
+
+        col_update, col_periode, col_download = st.columns(
+            [7, 1.8, 0.65],
+            gap="small",
+            vertical_alignment="center"
         )
+
+        with col_update:
+            st.caption(
+                f"🔄 *Data diperbarui otomatis setiap 1 jam* | "
+                f"*Terakhir diperbarui: {waktu_update}*"
+            )
+
+        with col_periode:
+            periode_pilih = st.selectbox(
+                "Periode",
+                opsi_periode,
+                index=0,
+                label_visibility="collapsed"
+            )
+
+
+        # =========================
+        # FILTER PERIODE TERPILIH
+        # =========================
+
+        is_triwulan = periode_pilih.startswith("Triwulan")
+
+        if is_triwulan:
+
+            _, nomor_triwulan, tahun_periode = periode_pilih.split()
+
+            nomor_triwulan = romawi_ke_angka[nomor_triwulan]
+            tahun_periode = int(tahun_periode)
+
+            bulan_awal = (nomor_triwulan - 1) * 3 + 1
+            bulan_akhir = bulan_awal + 2
+
+            bulan_triwulan = [
+                nama_bulan[i]
+                for i in range(bulan_awal, bulan_akhir + 1)
+            ]
+
+            # Data periode yang sedang ditampilkan
+            df_periode = df[
+                (df["Tanggal Kehadiran"].dt.year == tahun_periode) &
+                (df["Tanggal Kehadiran"].dt.month >= bulan_awal) &
+                (df["Tanggal Kehadiran"].dt.month <= bulan_akhir)
+            ].copy()
+
+            # Triwulan sebelumnya untuk delta
+            if nomor_triwulan > 1:
+                triwulan_lalu = nomor_triwulan - 1
+                tahun_lalu = tahun_periode
+            else:
+                triwulan_lalu = 4
+                tahun_lalu = tahun_periode - 1
+
+            bulan_awal_lalu = (triwulan_lalu - 1) * 3 + 1
+            bulan_akhir_lalu = bulan_awal_lalu + 2
+
+            df_periode_lalu = df[
+                (df["Tanggal Kehadiran"].dt.year == tahun_lalu) &
+                (df["Tanggal Kehadiran"].dt.month >= bulan_awal_lalu) &
+                (df["Tanggal Kehadiran"].dt.month <= bulan_akhir_lalu)
+            ].copy()
+
+            label_periode = (
+                f"Triwulan {romawi[nomor_triwulan]} "
+                f"{tahun_periode}"
+            )
+
+            nama_file_periode = (
+                f"Triwulan_{nomor_triwulan}_{tahun_periode}"
+            )
+
+            label_perbandingan = "dari triwulan lalu"
+
+        else:
+
+            bulan_triwulan = None
+            periode_terpilih = None
+
+            for periode in periode_bulan_tersedia:
+                label = (
+                    f"{nama_bulan[periode.month]} {periode.year}"
+                )
+
+                if label == periode_pilih:
+                    periode_terpilih = periode
+                    break
+
+            # Data bulan yang sedang ditampilkan
+            df_periode = df[
+                (df["Tanggal Kehadiran"].dt.year == periode_terpilih.year) &
+                (df["Tanggal Kehadiran"].dt.month == periode_terpilih.month)
+            ].copy()
+
+            # Bulan sebelumnya untuk delta
+            periode_lalu = periode_terpilih - 1
+
+            df_periode_lalu = df[
+                (df["Tanggal Kehadiran"].dt.year == periode_lalu.year) &
+                (df["Tanggal Kehadiran"].dt.month == periode_lalu.month)
+            ].copy()
+
+            label_periode = (
+                f"{nama_bulan[periode_terpilih.month]} "
+                f"{periode_terpilih.year}"
+            )
+
+            nama_file_periode = (
+                f"{nama_bulan[periode_terpilih.month]}_"
+                f"{periode_terpilih.year}"
+            )
+
+            label_perbandingan = "dari bulan lalu"
+
+
+        # Judul dashboard mengikuti periode
+        judul_dashboard.subheader(
+            f"Ringkasan Kunjungan PST {label_periode}"
+        )
+
 
         # =========================
         # 1. TOTAL TAMU
         # =========================
 
-        total_tamu = len(df_bulan)
-        total_bulan_lalu = len(df_bulan_lalu)
+        total_tamu = len(df_periode)
+        total_periode_lalu = len(df_periode_lalu)
 
-        if total_bulan_lalu > 0:
+        if total_periode_lalu > 0:
             perubahan_tamu = (
-                (total_tamu - total_bulan_lalu)
-                / total_bulan_lalu
+                (total_tamu - total_periode_lalu)
+                / total_periode_lalu
             ) * 100
 
-            delta_total = f"{perubahan_tamu:+.0f}% dari bulan lalu"
+            delta_total = (
+                f"{perubahan_tamu:+.0f}% "
+                f"{label_perbandingan}"
+            )
         else:
             delta_total = None
+
 
         # =========================
         # 2. KEPERLUAN TERBANYAK
         # =========================
 
         distribusi_keperluan = (
-            df_bulan["Keperluan"]
+            df_periode["Keperluan"]
             .dropna()
             .value_counts()
         )
@@ -237,27 +1167,33 @@ with tab1:
                 else 0
             )
 
-            delta_keperluan = f"{persen_terbanyak:.0f}% dari total"
+            delta_keperluan = (
+                f"{persen_terbanyak:.0f}% dari total"
+            )
 
         else:
             keperluan_terbanyak = "-"
             delta_keperluan = None
 
+
         # =========================
         # 3. DURASI KUNJUNGAN
         # =========================
 
-        tanggal_string = df_bulan[
-            "Tanggal Kehadiran"
-        ].dt.strftime("%Y-%m-%d")
+        tanggal_string = (
+            df_periode["Tanggal Kehadiran"]
+            .dt.strftime("%Y-%m-%d")
+        )
 
         waktu_datang = pd.to_datetime(
-            tanggal_string + " " + df_bulan["Jam Datang"].astype(str),
+            tanggal_string + " " +
+            df_periode["Jam Datang"].astype(str),
             errors="coerce"
         )
 
         waktu_pulang = pd.to_datetime(
-            tanggal_string + " " + df_bulan["Jam Pulang"].astype(str),
+            tanggal_string + " " +
+            df_periode["Jam Pulang"].astype(str),
             errors="coerce"
         )
 
@@ -265,7 +1201,6 @@ with tab1:
             waktu_pulang - waktu_datang
         ).dt.total_seconds() / 60
 
-        # Hindari data waktu tidak valid
         durasi = durasi[durasi >= 0]
 
         if not durasi.empty:
@@ -275,24 +1210,26 @@ with tab1:
             rata_rata_durasi = None
             nilai_durasi = "-"
 
-        # Hitung durasi bulan sebelumnya untuk delta
+
+        # Durasi periode sebelumnya
         delta_durasi = None
 
-        if not df_bulan_lalu.empty:
+        if not df_periode_lalu.empty:
 
-            tanggal_lalu = df_bulan_lalu[
-                "Tanggal Kehadiran"
-            ].dt.strftime("%Y-%m-%d")
+            tanggal_lalu = (
+                df_periode_lalu["Tanggal Kehadiran"]
+                .dt.strftime("%Y-%m-%d")
+            )
 
             datang_lalu = pd.to_datetime(
                 tanggal_lalu + " " +
-                df_bulan_lalu["Jam Datang"].astype(str),
+                df_periode_lalu["Jam Datang"].astype(str),
                 errors="coerce"
             )
 
             pulang_lalu = pd.to_datetime(
                 tanggal_lalu + " " +
-                df_bulan_lalu["Jam Pulang"].astype(str),
+                df_periode_lalu["Jam Pulang"].astype(str),
                 errors="coerce"
             )
 
@@ -300,19 +1237,107 @@ with tab1:
                 pulang_lalu - datang_lalu
             ).dt.total_seconds() / 60
 
-            durasi_lalu = durasi_lalu[durasi_lalu >= 0]
+            durasi_lalu = durasi_lalu[
+                durasi_lalu >= 0
+            ]
 
             if (
                 not durasi_lalu.empty
                 and rata_rata_durasi is not None
             ):
-                selisih = rata_rata_durasi - durasi_lalu.mean()
+                selisih = (
+                    rata_rata_durasi -
+                    durasi_lalu.mean()
+                )
+
                 delta_durasi = f"{selisih:+.0f} Menit"
+
+
+        # =========================
+        # DATA BAR CHART
+        # =========================
+
+        data_kunjungan = (
+            df_periode["Keperluan"]
+            .dropna()
+            .value_counts()
+            .reset_index()
+        )
+
+        data_kunjungan.columns = [
+            "Keperluan Kunjungan",
+            "Jumlah Kunjungan"
+        ]
+
+        data_kunjungan = (
+            data_kunjungan
+            .sort_values("Jumlah Kunjungan")
+        )
+
+
+        # =========================
+        # DATA DONUT CHART
+        # =========================
+
+        data_jenis = (
+            df_periode["Jenis Tamu"]
+            .dropna()
+            .value_counts()
+            .reset_index()
+        )
+
+        data_jenis.columns = [
+            "Jenis Tamu",
+            "Jumlah"
+        ]
+
+
+        # =========================
+        # DATA EXCEL
+        # =========================
+
+        (
+            df_ringkasan_download,
+            data_kunjungan_download,
+            data_jenis_download
+        ) = siapkan_data_excel(df_periode)
+
+        rekap_bulanan = buat_rekap_bulanan(
+            df_periode,
+            nama_bulan,
+            tambah_total=is_triwulan,
+            bulan_wajib=bulan_triwulan
+        )
+
+        excel_overview = buat_excel_overview(
+            df_ringkasan_download,
+            data_kunjungan_download,
+            data_jenis_download,
+            df_periode,
+            rekap_bulanan,
+            nama_file_periode
+        )
+
+
+        # Tombol selalu aktif
+        with col_download:
+            st.download_button(
+                label="📥 Unduh Data",
+                data=excel_overview,
+                file_name=(
+                    f"Overview_Kunjungan_Tamu_"
+                    f"{nama_file_periode}.xlsx"
+                ),
+                mime=(
+                    "application/vnd.openxmlformats-officedocument."
+                    "spreadsheetml.sheet"
+                ),
+                use_container_width=True
+            )
 
         # =========================
         # METRIC CARDS
         # =========================
-
         col1, col2, col3 = st.columns(3)
 
         col1.metric(
@@ -333,48 +1358,10 @@ with tab1:
             delta=delta_durasi,
             delta_color="inverse"
         )
-
-        # =========================
-        # DATA BAR CHART
-        # =========================
-
-        data_kunjungan = (
-            df_bulan["Keperluan"]
-            .dropna()
-            .value_counts()
-            .reset_index()
-        )
-
-        data_kunjungan.columns = [
-            "Keperluan Kunjungan",
-            "Jumlah Kunjungan"
-        ]
-
-        # Urutkan agar bar terbesar berada di bawah
-        data_kunjungan = data_kunjungan.sort_values(
-            "Jumlah Kunjungan"
-        )
-
-        # =========================
-        # DATA DONUT CHART
-        # =========================
-
-        data_jenis = (
-            df_bulan["Jenis Tamu"]
-            .dropna()
-            .value_counts()
-            .reset_index()
-        )
-
-        data_jenis.columns = [
-            "Jenis Tamu",
-            "Jumlah"
-        ]
-
+            
         # =========================
         # CHART
         # =========================
-
         col_grafik, col_info = st.columns([65, 35])
 
         PALETTE_BIRU = [
@@ -395,7 +1382,7 @@ with tab1:
                     orientation="h",
                     text="Jumlah Kunjungan",
                     title=(
-                        "Distribusi Kategori Keperluan "
+                        "Distribusi Keperluan "
                         "Kunjungan Tamu PST"
                     ),
                     color="Jumlah Kunjungan",
@@ -409,7 +1396,7 @@ with tab1:
                 )
 
                 fig.update_layout(
-                    height=300,
+                    height=250,
                     margin=dict(
                         t=30,
                         b=10,
@@ -446,20 +1433,22 @@ with tab1:
                     textfont=dict(size=11),
                     selector=dict(type="pie"),
                     domain=dict(
-                        x=[0.1, 0.9],
-                        y=[0.1, 0.9]
+                        x=[0.18, 0.88],
+                        y=[0.12, 0.88]
                     )
                 )
 
                 fig_donut.update_layout(
-                    height=300,
+                    height=250,
                     margin=dict(
                         t=30,
-                        b=10,
-                        l=50,
-                        r=25
+                        b=5,
+                        l=75,
+                        r=70
                     ),
-                    showlegend=False
+                    showlegend=False,
+                    uniformtext_minsize=9,
+                    uniformtext_mode="show"
                 )
 
                 st.plotly_chart(
