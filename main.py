@@ -20,6 +20,22 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+        /* =========================================
+        HIDE STREAMLIT TOOLBAR
+        ========================================= */
+
+        [data-testid="stToolbar"] {
+            display: none !important;
+        }
+
+        [data-testid="stDecoration"] {
+            display: none !important;
+        }
+
+        [data-testid="stStatusWidget"] {
+            display: none !important;
+        }
+        
         /* Mengurangi padding atas halaman */
         .block-container {
             padding-top: 1rem !important;
@@ -918,7 +934,7 @@ with tab1:
 
         # Ambil Google Sheets
         df = get_google_sheet_data()
-        
+
         if df.empty:
             st.warning("Belum ada data kunjungan.")
             return
