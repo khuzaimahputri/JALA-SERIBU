@@ -8,6 +8,11 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from io import BytesIO
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from streamlit_sortables import sort_items
+from google import genai
+
+from google.genai import types
+from pydantic import BaseModel
 
 # --- CONFIG HALAMAN ---
 st.set_page_config(
@@ -20,18 +25,18 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-        /* Hide Streamlit Toolbar */
-        [data-testid="stToolbar"] {
-            display: none !important;
-        }
+        # /* Hide Streamlit Toolbar */
+        # [data-testid="stToolbar"] {
+        #     display: none !important;
+        # }
 
-        [data-testid="stDecoration"] {
-            display: none !important;
-        }
+        # [data-testid="stDecoration"] {
+        #     display: none !important;
+        # }
 
-        [data-testid="stStatusWidget"] {
-            display: none !important;
-        }
+        # [data-testid="stStatusWidget"] {
+        #     display: none !important;
+        # }
 
         /* Mengurangi padding atas halaman */
         .block-container {
@@ -921,6 +926,85 @@ def buat_rekap_bulanan(
 
     return rekap
 
+class HasilPengaduan(BaseModel):
+    tanggal: str
+    platform: str
+    topik: str
+    saran_pengaduan: str
+    status_tindak_lanjut: str
+    tindak_lanjut: str
+
+def analisis_screenshot_pengaduan(files):
+    client = genai.Client(
+        api_key=st.secrets["GEMINI_API_KEY"]
+    )
+
+    contents = []
+
+    # Masukkan semua screenshot sesuai urutan drag
+    for file in files:
+        contents.append(
+            types.Part.from_bytes(
+                data=file.getvalue(),
+                mime_type=file.type
+            )
+        )
+
+    # Prompt ditaruh setelah seluruh gambar
+    contents.append(
+        """
+        Seluruh gambar di atas adalah rangkaian screenshot
+        dari SATU saran/pengaduan yang sama dan sudah diberikan
+        dalam urutan percakapan yang benar.
+
+        Baca seluruh screenshot sebagai satu kesatuan konteks.
+
+        Ekstrak informasi berikut:
+
+        1. tanggal
+           Tanggal utama saran/pengaduan jika terlihat.
+           Gunakan format DD/MM/YYYY.
+           Jika tidak dapat dipastikan, isi "-".
+
+        2. platform
+           Contoh: Instagram, WhatsApp, Email, Facebook,
+           LAPOR!, atau platform lain yang terlihat.
+
+        3. topik
+           Ringkas topik utama dalam frasa pendek.
+
+        4. saran_pengaduan
+           Ringkas inti saran, pertanyaan, apresiasi,
+           atau pengaduan dari pengguna.
+
+        5. status_tindak_lanjut
+           Hanya boleh salah satu dari:
+           "Selesai"
+           "Belum Direspon"
+
+           Gunakan "Selesai" jika terlihat sudah ada jawaban/
+           tanggapan dari petugas.
+           Gunakan "Belum Direspon" jika belum terlihat tanggapan.
+
+        6. tindak_lanjut
+           Ringkas jawaban/tanggapan petugas jika ada.
+           Jika tidak ada, isi "(Belum Ada Balasan)".
+
+        Jangan mengarang informasi yang tidak terlihat.
+        """
+    )
+
+    response = client.models.generate_content(
+        model="gemini-3.6-flash",
+        contents=contents,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=HasilPengaduan
+        )
+    )
+
+    return response.parsed
+
 # --- TAB UTAMA ---
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📊 Overview Kunjungan PST", 
@@ -1485,12 +1569,12 @@ with tab1:
 # TAB 2: SARAN & PENGADUAN 
 # ==========================================
 with tab2:
-    st.subheader("Repositori Saran/Pengaduan")
-    
+    st.subheader("Repositori Saran & Pengaduan")
+
     # Upload Box Screenshot
     with st.expander("📸 Upload Screenshot", expanded=True):
         uploaded_files = st.file_uploader(
-            "Upload screenshot saran/pengaduan dari berbagai platform. Dapat upload multiple files.", 
+            "Unggah satu atau beberapa screenshot untuk 1 saran/pengaduan. Jika percakapan terdiri dari beberapa screenshot, unggah seluruh screenshot sekaligus sesuai urutan percakapan.", 
             type=["jpg", "jpeg", "png"], 
             accept_multiple_files=True, 
             key="sp_uploader"
@@ -1498,25 +1582,144 @@ with tab2:
         
         # Cek apakah list uploaded_files ada isinya (bukan pengecekan None)
         if uploaded_files:
-            for idx, uploaded_file in enumerate(uploaded_files):
-                if idx > 0:
-                    st.divider()  # Garis pemisah kalau upload lebih dari 1 foto
-                    
-                col_img, col_info = st.columns([1, 2])
-                with col_img:
-                    st.image(uploaded_file, caption=f"Preview Screenshot {idx+1}", use_container_width=True)
-                with col_info:
-                    st.success(f"✅ Berhasil Membaca Screenshot #{idx+1}!")
-                    st.write("**Hasil Ekstraksi Otomatis:**")
-                    st.text_input("Platform Identified:", "Instagram (DM)", disabled=True, key=f"platform_{idx}")
-                    st.text_area("Konteks Pesan/Pengaduan:", "Mohon info cara mendapatkan data PDRB Kepulauan Seribu 5 tahun terakhir.", disabled=True, key=f"konteks_{idx}")
-                    
-                    # AI Otomatis Deteksi Apakah Ada Tanggapan di Gambar
-                    st.selectbox("Status Tanggapan (Auto-Detect):", ["🟢 Selesai (Ada Tanggapan)", "🔴 Belum Direspon"], index=0, disabled=True, key=f"status_{idx}")
-                    st.text_area("Isi Tanggapan/Balasan (Jikalau ada):", "Halo Kak! Data PDRB dapat diakses gratis melalui web kepseribukab.bps.go.id atau silakan ajukan via PST.", disabled=True, key=f"tanggapan_{idx}")
-                    
-                    if st.button(f"💾 Simpan ke Database Monitoring (#{idx+1})", key=f"btn_save_{idx}"):
-                        st.toast(f"Data pengaduan #{idx+1} berhasil tersimpan!")
+
+            # Kalau lebih dari 1 screenshot, tampilkan fitur pengurutan
+            if len(uploaded_files) > 1:
+
+                st.markdown("#### 🔀 Urutan Screenshot")
+                st.caption(
+                    "Drag nama file untuk menyesuaikan urutan percakapan "
+                    "sebelum dianalisis."
+                )
+
+                label_to_file = {
+                    f"{idx + 1}. {file.name}": file
+                    for idx, file in enumerate(uploaded_files)
+                }
+
+                # Key berubah kalau daftar file berubah
+                file_signature = "_".join(
+                    sorted(file.name for file in uploaded_files)
+                )
+
+                urutan_file = sort_items(
+                    list(label_to_file.keys()),
+                    direction="vertical",
+                    key=f"sp_sorter_{file_signature}"
+                )
+
+                ordered_files = [
+                    label_to_file[label]
+                    for label in urutan_file
+                    if label in label_to_file
+                ]
+
+            # Kalau cuma 1 screenshot, tidak perlu sorter
+            else:
+                ordered_files = uploaded_files
+
+
+            # PREVIEW
+            st.markdown("#### 👀 Preview Screenshot")
+
+            kolom_preview = st.columns(
+                min(len(ordered_files), 3)
+            )
+
+            for idx, file in enumerate(ordered_files):
+                kolom = kolom_preview[idx % len(kolom_preview)]
+
+                with kolom:
+                    st.image(
+                        file,
+                        caption=f"Screenshot {idx + 1}",
+                        use_container_width=True
+                    )
+
+
+            # TOMBOL ANALISIS
+            if st.button(
+                "Analisis Screenshot",
+                type="primary",
+                key="btn_analisis_sp"
+            ):
+
+                try:
+                    with st.spinner("Menganalisis screenshot..."):
+                        hasil = analisis_screenshot_pengaduan(
+                            ordered_files
+                        )
+
+                    st.session_state["hasil_analisis_sp"] = (
+                        hasil.model_dump()
+                    )
+
+                except Exception as e:
+                    st.error(
+                        f"Gagal menganalisis screenshot: {e}"
+                    )
+
+            if "hasil_analisis_sp" in st.session_state:
+
+                hasil = st.session_state["hasil_analisis_sp"]
+
+                st.markdown("### ✨ Hasil Analisis")
+
+                tanggal_review = st.text_input(
+                    "Tanggal",
+                    value=hasil["tanggal"],
+                    key="review_tanggal"
+                )
+
+                platform_review = st.text_input(
+                    "Platform",
+                    value=hasil["platform"],
+                    key="review_platform"
+                )
+
+                topik_review = st.text_input(
+                    "Topik",
+                    value=hasil["topik"],
+                    key="review_topik"
+                )
+
+                saran_review = st.text_area(
+                    "Saran/Pengaduan",
+                    value=hasil["saran_pengaduan"],
+                    key="review_saran"
+                )
+
+                pilihan_status = [
+                    "🔴 Belum Direspon",
+                    "🟢 Selesai"
+                ]
+
+                status_ai = hasil["status_tindak_lanjut"]
+
+                index_status = (
+                    1 if status_ai == "Selesai"
+                    else 0
+                )
+
+                status_review = st.selectbox(
+                    "Status Tindak Lanjut",
+                    pilihan_status,
+                    index=index_status,
+                    key="review_status"
+                )
+
+                tindak_lanjut_review = st.text_area(
+                    "Tindak Lanjut",
+                    value=hasil["tindak_lanjut"],
+                    key="review_tindak_lanjut"
+                )
+
+                st.button(
+                    "💾 Simpan Pengaduan",
+                    type="primary",
+                    key="btn_simpan_pengaduan"
+                )
+
 
     st.write("---")
     st.write("### 📑 Tabel Rekapitulasi Pengaduan")

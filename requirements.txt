@@ -5,3 +5,9 @@ plotly
 gspread
 google-auth
 openpyxl
+
+streamlit-sortables
+
+google-genai==2.20.0
+
+google-api-python-client
