@@ -3,16 +3,27 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from services.google_sheets import get_google_sheet_data
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from io import BytesIO
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from streamlit_sortables import sort_items
 from google import genai
-
 from google.genai import types
 from pydantic import BaseModel
+from services.google_drive import upload_screenshot
+
+from services.google_sheets import (
+    get_google_sheet_data,
+    append_pengaduan_row,
+    get_pengaduan_data,
+    append_pemutakhiran_row,
+    get_pemutakhiran_data,
+    append_faq_row,
+    get_faq_data,
+    get_skd_data,
+    upsert_skd_row,
+)
 
 # --- CONFIG HALAMAN ---
 st.set_page_config(
@@ -369,13 +380,6 @@ def buat_excel_overview(
         if bagian_periode[0] == "Triwulan":
             nomor_triwulan = int(bagian_periode[1])
             tahun_periode = bagian_periode[2]
-
-            romawi = {
-                1: "I",
-                2: "II",
-                3: "III",
-                4: "IV"
-            }
 
             judul_periode = (
                 f"TRIWULAN {romawi[nomor_triwulan]} "
@@ -853,6 +857,40 @@ def get_triwulan(bulan):
     else:
         return 4
 
+romawi = {
+    1: "I",
+    2: "II",
+    3: "III",
+    4: "IV"
+}
+
+romawi_ke_angka = {
+    "I": 1,
+    "II": 2,
+    "III": 3,
+    "IV": 4
+}
+
+target_skd = {
+    2026: {
+        1: 7,
+        2: 8,
+        3: 7,
+        4: 8,
+    }
+}
+
+target_tahunan_skd = 30
+
+laporan_skd = {
+    2026: {
+        1: "https://link-laporan-triwulan-1",
+        2: "https://link-laporan-triwulan-2",
+        3: None,
+        4: None,
+    }
+}
+
 def buat_rekap_bulanan(
     df_periode,
     nama_bulan,
@@ -934,6 +972,29 @@ class HasilPengaduan(BaseModel):
     status_tindak_lanjut: str
     tindak_lanjut: str
 
+class HasilPemutakhiran(BaseModel):
+    tanggal_update: str
+    kanal_digital: str
+    topik_konten: str
+
+class HasilFAQ(BaseModel):
+    tanggal: str
+    platform: str
+    topik: str
+    faq_key: str
+    faq_judul: str
+    pertanyaan: str
+    status_tindak_lanjut: str
+    tindak_lanjut: str
+
+class RespondenSKD(BaseModel):
+    tanggal_cacah: str
+    nama: str
+    status_kuesioner: str
+
+class HasilAnalisisSKD(BaseModel):
+    responden: list[RespondenSKD]
+
 def analisis_screenshot_pengaduan(files):
     client = genai.Client(
         api_key=st.secrets["GEMINI_API_KEY"]
@@ -1000,6 +1061,237 @@ def analisis_screenshot_pengaduan(files):
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
             response_schema=HasilPengaduan
+        )
+    )
+
+    return response.parsed
+
+def analisis_screenshot_pemutakhiran(files):
+    client = genai.Client(
+        api_key=st.secrets["GEMINI_API_KEY"]
+    )
+
+    contents = []
+
+    for file in files:
+        contents.append(
+            types.Part.from_bytes(
+                data=file.getvalue(),
+                mime_type=file.type
+            )
+        )
+
+    contents.append(
+        """
+        Seluruh gambar di atas adalah bukti dari SATU pemutakhiran
+        kanal digital yang sama.
+
+        Baca seluruh screenshot sebagai satu kesatuan konteks.
+
+        Ekstrak:
+
+        1. tanggal_update
+           Tanggal pemutakhiran/konten jika terlihat.
+           Gunakan format DD/MM/YYYY.
+           Jika tidak dapat dipastikan, isi "-".
+
+        2. kanal_digital
+           Nama kanal atau platform yang diperbarui.
+           Contoh: Website BPS, Instagram, Portal PPID,
+           Facebook, YouTube, atau kanal lain yang terlihat.
+
+        3. topik_konten
+           Judul atau ringkasan singkat konten yang diperbarui.
+
+        Jangan mengarang informasi yang tidak terlihat.
+        """
+    )
+
+    response = client.models.generate_content(
+        model="gemini-3.6-flash",
+        contents=contents,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=HasilPemutakhiran
+        )
+    )
+
+    return response.parsed
+
+def analisis_screenshot_faq(files):
+    client = genai.Client(
+        api_key=st.secrets["GEMINI_API_KEY"]
+    )
+
+    contents = []
+
+    for file in files:
+        contents.append(
+            types.Part.from_bytes(
+                data=file.getvalue(),
+                mime_type=file.type
+            )
+        )
+
+    contents.append(
+        """
+        Seluruh gambar di atas adalah rangkaian screenshot
+        dari SATU pertanyaan publik yang sama dan sudah diberikan
+        dalam urutan percakapan yang benar.
+
+        Baca seluruh screenshot sebagai satu kesatuan konteks.
+
+        Ekstrak:
+
+        1. tanggal
+           Tanggal awal pertanyaan jika terlihat.
+           Gunakan format DD/MM/YYYY.
+           Jika tidak dapat dipastikan, isi "-".
+
+        2. platform
+           Platform tempat pertanyaan diterima.
+           Contoh: Instagram, WhatsApp, Email, Facebook,
+           LAPOR!, atau platform lain yang terlihat.
+
+        3. topik
+           Ringkas kategori/topik pertanyaan dalam frasa pendek.
+
+        4. pertanyaan
+           Ringkas pertanyaan utama dari pengguna.
+           Pertahankan inti informasi yang ditanyakan.
+
+        5. status_tindak_lanjut
+           Hanya boleh salah satu:
+           "Selesai"
+           "Belum Direspon"
+
+           Gunakan "Selesai" jika terlihat sudah ada jawaban
+           atau tanggapan dari petugas.
+
+           Gunakan "Belum Direspon" jika belum ada jawaban.
+
+        6. tindak_lanjut
+           Ringkas jawaban/tanggapan petugas jika ada.
+           Jika belum ada tanggapan, isi "(Belum Ada Balasan)".
+
+        7. faq_key
+           Buat label kanonik yang sangat singkat untuk mengelompokkan
+           pertanyaan dengan maksud yang sama.
+
+           Gunakan inti kebutuhan pengguna, bukan cara kalimat ditulis.
+
+           Contoh:
+           "Apakah tersedia data umur tunggal?"
+           "Saya membutuhkan data penduduk menurut umur tunggal"
+           "Dimana mencari data umur tunggal Kepulauan Seribu?"
+           semuanya harus menghasilkan faq_key yang sama:
+           "data umur tunggal"
+
+           Gunakan huruf kecil dan jangan sertakan kata umum seperti
+           "permintaan", "menanyakan", "cara bertanya", atau nama platform.
+        
+        8. faq_judul
+           Buat judul FAQ yang singkat, natural, dan berbentuk pertanyaan.
+
+           Judul harus mewakili inti pertanyaan pengguna,
+           bukan menyalin kalimat panjang percakapan.
+
+           Contoh:
+           "Pengguna menanyakan ketersediaan data umur tunggal
+           Kepulauan Seribu tahun 2010-2020"
+           menjadi:
+           "Apakah tersedia data umur tunggal Kepulauan Seribu?"
+
+           Gunakan bahasa Indonesia yang ringkas dan jelas.
+
+        Jangan mengarang informasi yang tidak terlihat.
+        """
+    )
+
+    response = client.models.generate_content(
+        model="gemini-3.6-flash",
+        contents=contents,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=HasilFAQ
+        )
+    )
+
+    return response.parsed
+
+def analisis_screenshot_skd(files):
+    client = genai.Client(
+        api_key=st.secrets["GEMINI_API_KEY"]
+    )
+
+    contents = []
+
+    for file in files:
+        contents.append(
+            types.Part.from_bytes(
+                data=file.getvalue(),
+                mime_type=file.type
+            )
+        )
+
+    contents.append(
+        """
+        Seluruh gambar di atas adalah screenshot progres Survei
+        Kebutuhan Data (SKD).
+
+        Screenshot dapat berasal dari:
+        1. Rekap Responden Terverifikasi
+        2. Rekap Calon Responden
+
+        Ekstrak SEMUA responden yang terlihat pada seluruh screenshot.
+
+        Untuk setiap responden, hasilkan:
+
+        tanggal_cacah
+        - Ambil tanggal cacah yang terlihat.
+        - Gunakan format DD/MM/YYYY.
+        - Jika tidak dapat dipastikan, isi "-".
+
+        nama
+        - Ambil nama responden persis seperti terlihat.
+        - Jangan membuat nama baru.
+
+        status_kuesioner
+        - Jika responden berada pada daftar Responden Terverifikasi,
+          isi persis:
+          "Sudah terverifikasi"
+
+        - Jika berada pada daftar Calon Responden, baca kondisi
+          Blok 1 sampai Blok 4.
+
+          Interpretasi simbol:
+          centang biru = blok sudah terisi dan sudah diverifikasi
+          silang merah = blok sudah terisi tetapi belum diverifikasi
+          tanda "-" = blok belum diisi
+          nilai seperti "0/1" = isian pada blok belum lengkap
+
+        Buat kesimpulan status yang singkat dan jelas.
+
+        Contoh:
+        "Belum terisi lengkap pada Blok 3"
+        "Blok 4 belum diisi"
+        "Sudah terisi lengkap tapi belum diverifikasi"
+        "Belum seluruh blok diverifikasi"
+
+        Jangan mengarang responden atau status yang tidak terlihat.
+
+        Jika nama yang sama terlihat lebih dari sekali pada screenshot,
+        keluarkan satu record dengan kondisi yang paling mutakhir /
+        paling lengkap.
+        """
+    )
+
+    response = client.models.generate_content(
+        model="gemini-3.6-flash",
+        contents=contents,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=HasilAnalisisSKD
         )
     )
 
@@ -1079,20 +1371,6 @@ with tab1:
             triwulan_tersedia.add(
                 (periode.year, nomor_triwulan)
             )
-
-        romawi = {
-            1: "I",
-            2: "II",
-            3: "III",
-            4: "IV"
-        }
-
-        romawi_ke_angka = {
-            "I": 1,
-            "II": 2,
-            "III": 3,
-            "IV": 4
-        }
 
         for tahun, triwulan in sorted(
             triwulan_tersedia,
@@ -1571,13 +1849,21 @@ with tab1:
 with tab2:
     st.subheader("Repositori Saran & Pengaduan")
 
+    if st.session_state.pop("sp_simpan_sukses", False):
+        st.success("✅ Data berhasil disimpan!")
+
     # Upload Box Screenshot
     with st.expander("📸 Upload Screenshot", expanded=True):
+
+        # Untuk reset file uploader setelah pengaduan berhasil disimpan
+        if "sp_uploader_version" not in st.session_state:
+            st.session_state["sp_uploader_version"] = 0
+
         uploaded_files = st.file_uploader(
-            "Unggah satu atau beberapa screenshot untuk 1 saran/pengaduan. Jika percakapan terdiri dari beberapa screenshot, unggah seluruh screenshot sekaligus sesuai urutan percakapan.", 
-            type=["jpg", "jpeg", "png"], 
-            accept_multiple_files=True, 
-            key="sp_uploader"
+            "Unggah satu atau beberapa screenshot untuk 1 saran/pengaduan. Jika percakapan terdiri dari beberapa screenshot, unggah seluruh screenshot sekaligus sesuai urutan percakapan.",
+            type=["jpg", "jpeg", "png"],
+            accept_multiple_files=True,
+            key=f"sp_uploader_{st.session_state['sp_uploader_version']}"
         )
         
         # Cek apakah list uploaded_files ada isinya (bukan pengecekan None)
@@ -1645,7 +1931,7 @@ with tab2:
             ):
 
                 try:
-                    with st.spinner("Menganalisis screenshot..."):
+                    with st.spinner("Menganalisis data"):
                         hasil = analisis_screenshot_pengaduan(
                             ordered_files
                         )
@@ -1659,6 +1945,7 @@ with tab2:
                         f"Gagal menganalisis screenshot: {e}"
                     )
 
+            # Form hasil analisis
             if "hasil_analisis_sp" in st.session_state:
 
                 hasil = st.session_state["hasil_analisis_sp"]
@@ -1714,47 +2001,103 @@ with tab2:
                     key="review_tindak_lanjut"
                 )
 
-                st.button(
+                if st.button(
                     "💾 Simpan Pengaduan",
                     type="primary",
                     key="btn_simpan_pengaduan"
-                )
+                ):
+                    try:
+                        with st.spinner("Menyimpan data..."):
 
+                            # 1. Buat nama folder bukti
+                            nama_folder = (
+                                f"SP_{tanggal_review.replace('/', '-')}_"
+                                f"{platform_review.replace(' ', '-')}"
+                            )
 
-    st.write("---")
+                            # 2. Upload screenshot ke Google Drive
+                            hasil_drive = upload_screenshot(
+                                ordered_files,
+                                nama_folder,
+                                st.secrets["DRIVE_SP_FOLDER_ID"]
+                            )
+
+                            folder_link = hasil_drive["folder_link"]
+
+                            # 3. Rapikan status sebelum masuk Google Sheets
+                            status_sheet = (
+                                "🟢 Selesai"
+                                if "Selesai" in status_review
+                                else "🔴 Belum Direspon"
+                            )
+
+                            # 4. Simpan hasil review ke Database JALA-SERIBU
+                            append_pengaduan_row([
+                                tanggal_review,
+                                platform_review,
+                                topik_review,
+                                saran_review,
+                                status_sheet,
+                                tindak_lanjut_review,
+                                folder_link
+                            ])
+
+                            # Tandai bahwa penyimpanan berhasil
+                            st.session_state["sp_simpan_sukses"] = True
+                            # Hapus hasil analisis
+                            st.session_state.pop("hasil_analisis_sp", None)
+                            # Reset file uploader
+                            st.session_state["sp_uploader_version"] += 1
+                            # Jalankan ulang halaman dalam keadaan bersih
+                            st.rerun()
+
+                    except Exception as e:
+                        st.error(f"Gagal menyimpan pengaduan: {e}")
+
     st.write("### 📑 Tabel Rekapitulasi Pengaduan")
     
-    # Dummy Tabel Pengaduan dengan 2 Status & Kolom Tanggapan
-    df_pengaduan = pd.DataFrame({
-        "Tanggal": ["20/07/2026", "21/07/2026", "22/07/2026"],
-        "Platform": ["Instagram", "LAPOR!", "Email"],
-        "Topik": [
-            "Data PDRB",
-            "Apresiasi Petugas",
-            "Kendala Portal"
-        ],
-        "Saran/Pengaduan": [
-            "Tanya kelengkapan data PDRB 2025", 
-            "Apresiasi pelayanan petugas PST ramah", 
-            "Kendala akses login portal Romantik"
-        ],
-        "Status Tindak Lanjut": ["🔴 Belum Direspon", "🟢 Selesai", "🟢 Selesai"],
-        "Tindak Lanjut": [
-            "(Belum Ada Balasan)",
-            "Terima kasih atas apresiasinya! Kami terus berkomitmen memberikan pelayanan terbaik.",
-            "Halo, untuk kendala login akun Romantik telah diselesaikan oleh tim IT BPS."
-        ],
-        "Bukti":[
-            "link",
-            "link",
-            "link"
-        ]
-    })
-    
-    st.dataframe(
-        df_pengaduan, 
-        use_container_width=True,
-        hide_index=True,  
+    # Tsbel rekapitulasi Saran dan Pengaduan
+    df_pengaduan = get_pengaduan_data()
+
+    if df_pengaduan.empty:
+        st.info("Belum ada data saran/pengaduan yang tersimpan")
+    else:
+        st.dataframe(
+            df_pengaduan,
+            use_container_width=True,
+            hide_index=True,
+            row_height=100,
+            column_config={
+                "Tanggal": st.column_config.TextColumn(
+                    "Tanggal",
+                    width="small",
+                ),
+                "Platform": st.column_config.TextColumn(
+                    "Platform",
+                    width="small",
+                ),
+                "Topik": st.column_config.TextColumn(
+                    "Topik",
+                    width="medium",
+                ),
+                "Saran/Pengaduan": st.column_config.TextColumn(
+                    "Saran/Pengaduan",
+                    width="medium",
+                ),
+                "Status Tindak Lanjut": st.column_config.TextColumn(
+                    "Status Tindak Lanjut",
+                    width="small",
+                ),
+                "Tindak Lanjut": st.column_config.TextColumn(
+                    "Tindak Lanjut",
+                    width="large",
+                ),
+                "Bukti": st.column_config.LinkColumn(
+                    "Bukti",
+                    display_text="📂 Buka Bukti",
+                    width="small",
+                ),
+            },
         )
 
 # ==========================================
@@ -1762,208 +2105,841 @@ with tab2:
 # ==========================================
 with tab3:
     st.subheader("Repositori Pertanyaan Publik dan FAQ")
-    
+
+    if st.session_state.pop("faq_simpan_sukses", False):
+        st.success("✅ Pertanyaan berhasil disimpan!")
+
+    if "faq_uploader_version" not in st.session_state:
+        st.session_state["faq_uploader_version"] = 0
+
     # 1. FORM INPUT SCREENSHOT PERTANYAAN BARU
     with st.expander("📸 Upload Screenshot", expanded=False):
             uploaded_faqs = st.file_uploader(
-                "Upload screenshot pertanyaan baru dari berbagai platform. Dapat upload multiple files.", 
+                "Unggah satu atau beberapa screenshot untuk 1 pertanyaan. Jika percakapan terdiri dari beberapa screenshot, unggah seluruh screenshot sekaligus sesuai urutan percakapan.", 
                 type=["jpg", "jpeg", "png"], 
                 accept_multiple_files=True, 
-                key="faq_uploader"
+                key=f"faq_uploader_{st.session_state['faq_uploader_version']}"
             )
             
             # Pengecekan apakah list uploaded_faqs ada isinya
             if uploaded_faqs:
-                for idx, uploaded_faq in enumerate(uploaded_faqs):
-                    if idx > 0:
-                        st.divider() # Garis pembatas jika upload lebih dari 1 file
-                    
-                    col_faq_img, col_faq_info = st.columns([1, 2])
-                    with col_faq_img:
-                        st.image(uploaded_faq, caption=f"Preview Pertanyaan #{idx+1}", use_container_width=True)
-                    with col_faq_info:
-                        st.success(f"✅ Berhasil Membaca Pertanyaan #{idx+1}!")
-                        
-                        # Widget dengan key unik menggunakan suffix idx
-                        st.text_input("Platform:", "Instagram DM", disabled=True, key=f"faq_platform_{idx}")
-                        st.text_input("Pertanyaan Di-ekstrak:", "Apakah data inflasi bulanan Kepulauan Seribu ada di website?", disabled=True, key=f"faq_q_{idx}")
-                        st.text_area("Rekomendasi Jawaban Standar (FAQ):", "Halo Kak! Data inflasi DKI Jakarta & indikator strategis dapat diakses melalui website resmi kepseribukab.bps.go.id pada menu Publikasi/BRS.", disabled=True, key=f"faq_ans_{idx}")
-                        
-                        if st.button(f"💾 Simpan ke Database FAQ (#{idx+1})", key=f"faq_save_{idx}"):
-                            st.toast(f"Pertanyaan #{idx+1} berhasil ditambahkan ke FAQ!")
 
-    st.write("---")
+                # Kalau screenshot lebih dari 1, tampilkan sorter
+                if len(uploaded_faqs) > 1:
+
+                    st.markdown("#### 🔀 Urutan Screenshot")
+                    st.caption(
+                        "Drag nama file untuk menyesuaikan urutan "
+                        "percakapan sebelum dianalisis."
+                    )
+
+                    label_to_file_faq = {
+                        f"{idx + 1}. {file.name}": file
+                        for idx, file in enumerate(uploaded_faqs)
+                    }
+
+                    file_signature_faq = "_".join(
+                        sorted(file.name for file in uploaded_faqs)
+                    )
+
+                    urutan_faq = sort_items(
+                        list(label_to_file_faq.keys()),
+                        direction="vertical",
+                        key=f"faq_sorter_{file_signature_faq}"
+                    )
+
+                    ordered_faqs = [
+                        label_to_file_faq[label]
+                        for label in urutan_faq
+                        if label in label_to_file_faq
+                    ]
+
+                else:
+                    ordered_faqs = uploaded_faqs
+
+
+                # Preview
+                st.markdown("#### 👀 Preview Screenshot")
+
+                kolom_preview_faq = st.columns(
+                    min(len(ordered_faqs), 3)
+                )
+
+                for idx, file in enumerate(ordered_faqs):
+                    kolom = kolom_preview_faq[
+                        idx % len(kolom_preview_faq)
+                    ]
+
+                    with kolom:
+                        st.image(
+                            file,
+                            caption=f"Screenshot {idx + 1}",
+                            use_container_width=True
+                        )
+
+
+                # Analisis
+                if st.button(
+                    "Analisis Screenshot",
+                    type="primary",
+                    key="btn_analisis_faq"
+                ):
+                    try:
+                        with st.spinner("Menganalisis pertanyaan..."):
+
+                            hasil_faq = analisis_screenshot_faq(
+                                ordered_faqs
+                            )
+
+                        st.session_state["hasil_analisis_faq"] = (
+                            hasil_faq.model_dump()
+                        )
+
+                    except Exception as e:
+                        st.error(
+                            f"Gagal menganalisis screenshot: {e}"
+                        )
+
+                # Review
+                if "hasil_analisis_faq" in st.session_state:
+                    hasil_faq = st.session_state["hasil_analisis_faq"]
+
+                    # FAQ Key untuk pengelompokan pertanyaan serupa
+                    faq_key_faq_review = hasil_faq["faq_key"]
+
+                    st.markdown("### ✨ Hasil Analisis")
+
+                    tanggal_faq_review = st.text_input(
+                        "Tanggal",
+                        value=hasil_faq["tanggal"],
+                        key="review_tanggal_faq"
+                    )
+
+                    platform_faq_review = st.text_input(
+                        "Platform",
+                        value=hasil_faq["platform"],
+                        key="review_platform_faq"
+                    )
+
+                    topik_faq_review = st.text_input(
+                        "Topik",
+                        value=hasil_faq["topik"],
+                        key="review_topik_faq"
+                    )
+
+                    pertanyaan_faq_review = st.text_area(
+                        "Pertanyaan",
+                        value=hasil_faq["pertanyaan"],
+                        key="review_pertanyaan_faq"
+                    )
+
+                    pilihan_status_faq = [
+                        "🔴 Belum Direspon",
+                        "🟢 Selesai"
+                    ]
+
+                    status_ai_faq = hasil_faq["status_tindak_lanjut"]
+
+                    index_status_faq = (
+                        1 if status_ai_faq == "Selesai"
+                        else 0
+                    )
+
+                    status_faq_review = st.selectbox(
+                        "Status Tindak Lanjut",
+                        pilihan_status_faq,
+                        index=index_status_faq,
+                        key="review_status_faq"
+                    )
+
+                    tindak_lanjut_faq_review = st.text_area(
+                        "Tindak Lanjut",
+                        value=hasil_faq["tindak_lanjut"],
+                        key="review_tindak_lanjut_faq"
+                    )
+
+                    faq_key_faq_review = hasil_faq["faq_key"]
+
+                    if st.button(
+                        "💾 Simpan Pertanyaan",
+                        type="primary",
+                        key="btn_simpan_faq"
+                    ):
+                        try:
+                            with st.spinner("Menyimpan pertanyaan..."):
+
+                                # 1. Nama folder bukti
+                                nama_folder_faq = (
+                                    f"FAQ_{tanggal_faq_review.replace('/', '-')}_"
+                                    f"{platform_faq_review.replace(' ', '-')}"
+                                )
+
+                                # 2. Upload screenshot ke folder Pertanyaan & FAQ
+                                hasil_drive_faq = upload_screenshot(
+                                    ordered_faqs,
+                                    nama_folder_faq,
+                                    st.secrets["DRIVE_FAQ_FOLDER_ID"]
+                                )
+
+                                folder_link_faq = hasil_drive_faq["folder_link"]
+
+                                # 3. Rapikan status untuk Google Sheets
+                                status_sheet_faq = (
+                                    "🟢 Selesai"
+                                    if "Selesai" in status_faq_review
+                                    else "🔴 Belum Direspon"
+                                )
+
+                                # 4. Simpan ke Database JALA-SERIBU
+                                append_faq_row([
+                                    tanggal_faq_review,
+                                    platform_faq_review,
+                                    topik_faq_review,
+                                    faq_key_faq_review,
+                                    pertanyaan_faq_review,
+                                    status_sheet_faq,
+                                    tindak_lanjut_faq_review,
+                                    folder_link_faq
+                                ])
+
+                            st.session_state["faq_simpan_sukses"] = True
+                            st.session_state.pop("hasil_analisis_faq", None)
+                            st.session_state["faq_uploader_version"] += 1
+
+                            st.rerun()
+
+                        except Exception as e:
+                            st.error(
+                                f"Gagal menyimpan pertanyaan: {e}"
+                            )
 
     # 2. TABEL REKAPITULASI SEMUA PERTANYAAN
     st.write("### 📑 Tabel Rekapitulasi Pertanyaan Masuk")
-    df_faq = pd.DataFrame({
-        "Tanggal": ["18/07/2026", "20/07/2026", "21/07/2026", "22/07/2026"],
-        "Platform": ["Instagram", "Email", "WhatsApp", "Instagram"],
-        "Topik": ["Jam Operasional", "Cara Permohonan Data", "Syarat Romantik", "Akses Data PDRB"],
-        "Pertanyaan": [
-            "Jam operasional layanan PST offline", 
-            "Cara permohonan data mikro/raw data", 
-            "Syarat pengajuan Rekomendasi Statistik (Romantik)",
-            "Akses data PDRB Kepulauan Seribu 2025"
-        ],
-        "Status Tindak Lanjut": ["🔴 Belum Direspon", "🟢 Selesai", "🟢 Selesai", "🟢 Selesai"],
-        "Tindak Lanjut":[
-            "a",
-            "b",
-            "c",
-            "d"
-        ],
-        "Bukti": [
-            "link", "link", "link", "link"
-        ],
-        "Frekuensi": ["28x Ditanyakan", "15x Ditanyakan", "8x Ditanyakan", "12x Ditanyakan"]
-    })
-    st.dataframe(df_faq, 
-                 use_container_width=True,
-                 hide_index=True,
-                 )
+    df_faq = get_faq_data()
 
-    st.write("---")
+    df_faq_display = df_faq.drop(
+        columns=["FAQ Key"],
+        errors="ignore"
+    )
+
+    # bikin frekuensi untuk tampilan
+    if not df_faq.empty:
+        frekuensi_topik = (
+            df_faq["FAQ Key"]
+            .fillna("-")
+            .value_counts()
+        )
+
+    if df_faq.empty:
+        st.info("Belum ada data pertanyaan yang tersimpan.")
+    else:
+        st.dataframe(
+            df_faq_display,
+            use_container_width=True,
+            hide_index=True,
+            row_height=100,
+            column_config={
+                "Tanggal": st.column_config.TextColumn(
+                    "Tanggal",
+                    width="small",
+                ),
+                "Platform": st.column_config.TextColumn(
+                    "Platform",
+                    width="small",
+                ),
+                "Topik": st.column_config.TextColumn(
+                    "Topik",
+                    width="medium",
+                ),
+                "Pertanyaan": st.column_config.TextColumn(
+                    "Pertanyaan",
+                    width="medium",
+                ),
+                "Status Tindak Lanjut": st.column_config.TextColumn(
+                    "Status Tindak Lanjut",
+                    width="small",
+                ),
+                "Tindak Lanjut": st.column_config.TextColumn(
+                    "Tindak Lanjut",
+                    width="large",
+                ),
+                "Bukti": st.column_config.LinkColumn(
+                    "Bukti",
+                    display_text="📂 Buka Bukti",
+                    width="small",
+                ),
+            },
+        )
 
     # 3. PERTANYAAN POPULER / TOP FAQ (KARTU RINGKASAN JAWABAN)
     st.write("### ⭐ Pertanyaan Paling Populer (FAQ)")
+
+    if df_faq.empty:
+        st.info("Belum ada data untuk membentuk FAQ.")
+
+    else:
+        # Ambil maksimal 3 topik yang paling sering ditanyakan
+        top_faq = frekuensi_topik.head(3)
+
+        for posisi, (faq_key, jumlah) in enumerate(top_faq.items()):
+
+            kelompok_faq = df_faq[
+                df_faq["FAQ Key"].fillna("-") == faq_key
+            ].copy()
+
+            if kelompok_faq.empty:
+                continue
+
+            # Ubah tanggal supaya bisa pilih record terbaru
+            kelompok_faq["_tanggal_dt"] = pd.to_datetime(
+                kelompok_faq["Tanggal"],
+                format="%d/%m/%Y",
+                errors="coerce"
+            )
+
+            kelompok_faq = kelompok_faq.sort_values(
+                "_tanggal_dt",
+                ascending=False
+            )
+
+            # Ambil pertanyaan terbaru sebagai judul FAQ
+            pertanyaan_populer = kelompok_faq.iloc[0]["Pertanyaan"]
+
+            # Cari jawaban/tindak lanjut yang statusnya sudah selesai
+            jawaban_selesai = kelompok_faq[
+                kelompok_faq["Status Tindak Lanjut"]
+                .astype(str)
+                .str.contains("Selesai", case=False, na=False)
+            ]
+
+            if not jawaban_selesai.empty:
+                jawaban_resmi = jawaban_selesai.iloc[0]["Tindak Lanjut"]
+            else:
+                jawaban_resmi = "Belum ada jawaban resmi untuk pertanyaan ini."
+
+            with st.expander(
+                f"❓ {pertanyaan_populer} (Ditanyakan {jumlah}x)",
+                expanded=(posisi == 0)
+            ):
+                st.write("**Jawaban Resmi:**")
+                st.info(jawaban_resmi)
     
-    with st.expander("❓ **Jam berapa pelayanan PST BPS Kepulauan Seribu buka?** (Ditanyakan 28x)", expanded=True):
-        st.write("**Jawaban Resmi:**")
-        st.info("PST BPS Kabupaten Kepulauan Seribu buka setiap hari kerja:\n- Senin - Kamis: 08.00 - 15.30 WIB\n- Jumat: 08.00 - 16.00 WIB\nHari Sabtu, Minggu, dan Libur Nasional Tutup.")
-
-    with st.expander("❓ **Bagaimana cara mendapatkan data mikro / Raw Data BPS?** (Ditanyakan 15x)"):
-        st.write("**Jawaban Resmi:**")
-        st.info("Pemohon data mikro dapat mengajukan permohonan secara online melalui portal PST dengan melampirkan identitas KTP dan Surat Pengantar Lembaga/Kampus.")
-
-    with st.expander("❓ **Dimana saya bisa mengunduh publikasi PDRB Kepulauan Seribu?** (Ditanyakan 12x)"):
-        st.write("**Jawaban Resmi:**")
-        st.info("Publikasi PDRB dapat diunduh gratis dalam format PDF melalui website resmi BPS Kabupaten Kepulauan Seribu (kepseribukab.bps.go.id) pada menu Publikasi.")
-
 # ==========================================
 # TAB 4: PROGRES SKD
 # ==========================================
 with tab4:
-    st.subheader("Progres Survei Kebutuhan Data (SKD) Triwulan III 2026")
-    
+    sekarang = datetime.now()
+
+    tahun_skd = sekarang.year
+    triwulan_skd = get_triwulan(sekarang.month)
+    nama_triwulan_skd = romawi[triwulan_skd]
+
+    target_triwulan_skd = target_skd.get(
+        tahun_skd, {}
+    ).get(
+        triwulan_skd, 0
+    )
+
+    # Ambil data progres SKD dari Google Sheets
+    df_skd = get_skd_data()
+
+    jumlah_triwulan_skd = 0
+    jumlah_tahunan_skd = 0
+
+    if not df_skd.empty:
+
+        df_skd_hitung = df_skd.copy()
+
+        # Ubah Tanggal Cacah menjadi datetime
+        df_skd_hitung["_tanggal"] = pd.to_datetime(
+            df_skd_hitung["Tanggal Cacah"],
+            format="%d/%m/%Y",
+            errors="coerce"
+        )
+
+        # Ambil hanya responden yang sudah terverifikasi
+        df_terverifikasi = df_skd_hitung[
+            df_skd_hitung["Status Kuesioner"]
+            .astype(str)
+            .str.strip()
+            .str.lower()
+            .eq("sudah terverifikasi")
+        ].copy()
+
+        # Jumlah terverifikasi selama tahun aktif
+        jumlah_tahunan_skd = len(
+            df_terverifikasi[
+                df_terverifikasi["_tanggal"].dt.year == tahun_skd
+            ]
+        )
+
+        # Jumlah terverifikasi pada triwulan aktif
+        df_triwulan_aktif = df_terverifikasi[
+            (df_terverifikasi["_tanggal"].dt.year == tahun_skd)
+            &
+            (df_terverifikasi["_tanggal"].dt.quarter == triwulan_skd)
+        ]
+
+        jumlah_triwulan_skd = len(df_triwulan_aktif)
+
+    persen_triwulan_skd = (
+        jumlah_triwulan_skd / target_triwulan_skd
+        if target_triwulan_skd > 0
+        else 0
+    )
+
+    persen_tahunan_skd = (
+        jumlah_tahunan_skd / target_tahunan_skd
+        if target_tahunan_skd > 0
+        else 0
+    )
+
+    progress_triwulan_skd = min(
+        persen_triwulan_skd,
+        1.0
+    )
+
+    progress_tahunan_skd = min(
+        persen_tahunan_skd,
+        1.0
+    )
+
+    st.subheader(
+        f"Progres Survei Kebutuhan Data (SKD) "
+        f"Triwulan {nama_triwulan_skd} {tahun_skd}"
+    )
+
+    if "skd_simpan_sukses" in st.session_state:
+        hasil_simpan = st.session_state.pop(
+            "skd_simpan_sukses"
+        )
+
+        st.success(
+            f"✅ Progres berhasil disimpan! "
+            f"{hasil_simpan['inserted']} data baru, "
+            f"{hasil_simpan['updated']} data diperbarui."
+        )
+
     col_skd1, col_skd2 = st.columns([3, 1])
     
     with col_skd1:
         sub_col_skd1, sub_col_skd2 = st.columns([1, 1])
         
         with sub_col_skd1:
-            st.write("##### Jumlah Responden Triwulan Triwulan III 2026")
-            st.progress(0.13, text="13,33% dari Target (4/10 Responden)")
+            st.write(
+                f"##### Jumlah Responden Triwulan "
+                f"{nama_triwulan_skd} {tahun_skd}"
+            )
+            st.progress(
+                progress_triwulan_skd,
+                text=(
+                    f"{persen_triwulan_skd * 100:.2f}% dari Target "
+                    f"({jumlah_triwulan_skd}/{target_triwulan_skd} Responden)"
+                ).replace(".", ",")
+            )
+
         with sub_col_skd2:
             st.write("##### Jumlah Responden Dalam Setahun")
-            st.progress(0.8, text="80% dari Target (24/30 Responden)")
+            st.progress(
+                progress_tahunan_skd,
+                text=(
+                    f"{persen_tahunan_skd * 100:.2f}% dari Target "
+                    f"({jumlah_tahunan_skd}/{target_tahunan_skd} Responden)"
+                ).replace(".", ",")
+            )
         
         # FORM INPUT SCREENSHOT
+        if "skd_uploader_version" not in st.session_state:
+            st.session_state["skd_uploader_version"] = 0
+
         with st.expander("📸 Upload Screenshot", expanded=True):
                 uploaded_skds = st.file_uploader(
                     "Upload screenshot progres pengisian survei. Dapat upload multiple files.", 
                     type=["jpg", "jpeg", "png"], 
                     accept_multiple_files=True, 
-                    key="skd_uploader"
+                    key=f"skd_uploader_{st.session_state['skd_uploader_version']}"
                 )
                 
                 # Pengecekan apakah ada file dalam list uploaded_skds
                 if uploaded_skds:
-                    for idx, uploaded_skd in enumerate(uploaded_skds):
-                        if idx > 0:
-                            st.divider()  # Garis pemisah antar screenshot
+                    st.markdown("#### 👀 Preview Screenshot")
+
+                    kolom_preview_skd = st.columns(
+                        min(len(uploaded_skds), 3)
+                    )
+
+                    for idx, file in enumerate(uploaded_skds):
+                        kolom = kolom_preview_skd[
+                            idx % len(kolom_preview_skd)
+                        ]
+
+                        with kolom:
+                            st.image(
+                                file,
+                                caption=f"Screenshot {idx + 1}",
+                                use_container_width=True
+                            )
+
+                    if st.button(
+                        "Analisis Screenshot",
+                        type="primary",
+                        key="btn_analisis_skd"
+                    ):
+                        try:
+                            with st.spinner("Menganalisis progres SKD..."):
+                                hasil_skd = analisis_screenshot_skd(
+                                    uploaded_skds
+                                )
+
+                            st.session_state["hasil_analisis_skd"] = [
+                                item.model_dump()
+                                for item in hasil_skd.responden
+                            ]
+
+                        except Exception as e:
+                            st.error(
+                                f"Gagal menganalisis screenshot SKD: {e}"
+                            )
+
+                    if "hasil_analisis_skd" in st.session_state:
+
+                        st.markdown("### ✨ Hasil Analisis")
+
+                        df_review_skd = pd.DataFrame(
+                            st.session_state["hasil_analisis_skd"]
+                        )
+
+                        st.dataframe(
+                            df_review_skd,
+                            use_container_width=True,
+                            hide_index=True
+                        )
+
+                        # TOMBOL MASIH DI DALAM IF
+                        if st.button(
+                            "Simpan Progres",
+                            type="primary",
+                            key="btn_simpan_skd"
+                        ):
+                            try:
+                                with st.spinner("Menyimpan progres SKD..."):
+
+                                    inserted = 0
+                                    updated = 0
+
+                                    for item in st.session_state["hasil_analisis_skd"]:
+                                        hasil = upsert_skd_row(
+                                            item["tanggal_cacah"],
+                                            item["nama"],
+                                            item["status_kuesioner"]
+                                        )
+
+                                        if hasil == "inserted":
+                                            inserted += 1
+                                        elif hasil == "updated":
+                                            updated += 1
+
+                                st.session_state["skd_simpan_sukses"] = {
+                                    "inserted": inserted,
+                                    "updated": updated
+                                }
+
+                                st.session_state.pop(
+                                    "hasil_analisis_skd",
+                                    None
+                                )
+
+                                st.session_state["skd_uploader_version"] += 1
+
+                                st.rerun()
+
+                            except Exception as e:
+                                st.error(f"Gagal menyimpan progres SKD: {e}")
+
                         
-                        col_skd_img, col_skd_info = st.columns([1, 2])
-                        with col_skd_img:
-                            st.image(uploaded_skd, caption=f"Preview Bukti Update #{idx+1}", use_container_width=True)
-                        with col_skd_info:
-                            st.success(f"✅ Berhasil Membaca Bukti Update #{idx+1}!")
 
         # TABEL PROGRES PENGISIAN SURVEI
-        df_skd = pd.DataFrame({
-            "Tanggal Cacah": ["18/07/2026", "20/07/2026", "21/07/2026", "22/07/2026"],
-            "Nama": ["Busro", "Rice Damayanti", "Sapitri", "Wahyudi"],
-            "Status Kuesioner":["Belum terisi lengkap pada Blok 3", 
-                                           "Belum terisi lengkap pada Blok 3", 
-                                           "Belum diverifikasi", 
-                                           "Belum diverifikasi"],
-        })
-        st.dataframe(df_skd, 
-                     use_container_width=True, 
-                     hide_index=True,)
-                    
+        df_skd = get_skd_data()
 
+        if df_skd.empty:
+            st.info("Belum ada data progres SKD")
+        else:
+            st.dataframe(
+                df_skd,
+                use_container_width=True,
+                hide_index=True,
+            )
+                    
     with col_skd2:
         st.write("#### 📂 Akses Laporan Resmi SKD")
-        st.link_button("📄 Laporan SKD Triwulan I 2026", "https://kepseribukab.bps.go.id")
-        st.link_button("📄 Laporan SKD Triwulan II 2026", "https://kepseribukab.bps.go.id")
-        st.button("📄 Laporan SKD Triwulan III 2026(Drafting)", disabled=True)
+
+        laporan_tahun = laporan_skd.get(tahun_skd, {})
+
+        for tw in range(1, 5):
+            nama_tw = romawi[tw]
+            link_laporan = laporan_tahun.get(tw)
+
+            if link_laporan:
+                st.link_button(
+                    f"📄 Laporan SKD Triwulan {nama_tw} {tahun_skd}",
+                    link_laporan,
+                    use_container_width=True
+                )
+            else:
+                st.button(
+                    f"📄 Laporan SKD Triwulan {nama_tw} {tahun_skd} (Drafting)",
+                    disabled=True,
+                    use_container_width=True,
+                    key=f"laporan_skd_{tahun_skd}_{tw}"
+                )
 
 # ==========================================
 # TAB 5: PEMUTAKHIRAN KANAL DIGITAL
 # ==========================================
 with tab5:
     st.subheader("Pemutakhiran Kanal Digital")
-    
+
+    if st.session_state.pop("web_simpan_sukses", False):
+        st.success("✅ Data berhasil disimpan!")
+
+    # Ambil data asli
+    df_website = get_pemutakhiran_data()
+
     # 1. Metric Cards Ringkasan Update
     col_web1, col_web2, col_web3 = st.columns(3)
-    col_web1.metric("Total Update", "18 Konten", "+4 dari bulan lalu")
-    col_web2.metric("Kanal Paling Aktif", "Website Utama BPS", "10 Update")
-    col_web3.metric("Update Terakhir", "Hari ini (22/07/2026)")
+
+    if df_website.empty:
+
+        total_update = 0
+        kanal_aktif = "-"
+        jumlah_kanal_aktif = 0
+        update_terakhir = "-"
+
+    else:
+
+        # Total update
+        total_update = len(df_website)
+
+        # Kanal paling aktif
+        kanal_counts = df_website["Kanal Digital"].value_counts()
+
+        kanal_aktif = kanal_counts.index[0]
+        jumlah_kanal_aktif = int(kanal_counts.iloc[0])
+
+        # Update terakhir
+        tanggal_series = pd.to_datetime(
+            df_website["Tanggal Update"],
+            format="%d/%m/%Y",
+            errors="coerce"
+        )
+
+        tanggal_max = tanggal_series.max()
+
+        if pd.notna(tanggal_max):
+            tanggal_sekarang = pd.Timestamp.today().normalize()
+            selisih_hari = (tanggal_sekarang - tanggal_max.normalize()).days
+
+            if selisih_hari == 0:
+                update_terakhir = "Hari ini"
+            elif selisih_hari == 1:
+                update_terakhir = "Kemarin"
+            else:
+                update_terakhir = f"{selisih_hari} hari lalu"
+
+            tanggal_update_terakhir = tanggal_max.strftime("%d/%m/%Y")
+
+        else:
+            update_terakhir = "-"
+            tanggal_update_terakhir = None
+
+
+    col_web1.metric(
+        "Total Update",
+        f"{total_update} Konten"
+    )
+
+    col_web2.metric(
+        "Kanal Paling Aktif",
+        kanal_aktif,
+        f"{jumlah_kanal_aktif} Update" if jumlah_kanal_aktif > 0 else None
+    )
+
+    col_web3.metric(
+        "Update Terakhir",
+        update_terakhir,
+        tanggal_update_terakhir,
+        delta_arrow="off"
+    )
 
     # 2. FORM INPUT SCREENSHOT UPDATE
     with st.expander("📸 Upload Screenshot", expanded=True):
+            if "web_uploader_version" not in st.session_state:
+                st.session_state["web_uploader_version"] = 0
+
             uploaded_webs = st.file_uploader(
-                "Upload screenshot pemutakhiran berbagai kanal digital resmi. Dapat upload multiple files.", 
+                "Unggah satu atau beberapa screenshot untuk 1 pemutakhiran kanal digital. Jika percakapan terdiri dari beberapa screenshot, unggah seluruh screenshot sekaligus sesuai urutan percakapan.", 
                 type=["jpg", "jpeg", "png"], 
                 accept_multiple_files=True, 
-                key="web_uploader"
+                key=f"web_uploader_{st.session_state['web_uploader_version']}"
             )
             
             # Pengecekan apakah ada file yang diunggah dalam list uploaded_webs
             if uploaded_webs:
-                for idx, uploaded_web in enumerate(uploaded_webs):
-                    if idx > 0:
-                        st.divider()  # Garis pemisah antar screenshot
-                    
-                    col_web_img, col_web_info = st.columns([1, 2])
-                    with col_web_img:
-                        st.image(uploaded_web, caption=f"Preview Bukti Update #{idx+1}", use_container_width=True)
-                    with col_web_info:
-                        st.success(f"✅ Berhasil Membaca Bukti Update #{idx+1}!")
-                        
-                        # Widget dengan key unik menggunakan suffix idx
-                        st.text_input("Nama Website / Portal:", "Website Utama BPS (kepseribukab.bps.go.id)", disabled=True, key=f"web_portal_{idx}")
-                        st.text_input("Judul / Konten yang Di-update:", "Publikasi Kabupaten Kepulauan Seribu Dalam Angka 2026", disabled=True, key=f"web_title_{idx}")
-                        st.text_input("Tanggal Update:", "22/07/2026", disabled=True, key=f"web_date_{idx}")
-                        st.text_input("Kategori Konten:", "Publikasi / Berita Resmi Statistik (BRS)", disabled=True, key=f"web_cat_{idx}")
-                        
-                        if st.button(f"💾 Simpan Log Update (#{idx+1})", key=f"web_save_{idx}"):
-                            st.toast(f"Bukti update website #{idx+1} berhasil dicatat!")
 
-    st.write("---")
+                # Kalau screenshot lebih dari 1, tampilkan sorter
+                if len(uploaded_webs) > 1:
+
+                    st.markdown("#### 🔀 Urutan Screenshot")
+                    st.caption(
+                        "Drag nama file untuk menyesuaikan urutan bukti "
+                        "sebelum dianalisis."
+                    )
+
+                    label_to_file_web = {
+                        f"{idx + 1}. {file.name}": file
+                        for idx, file in enumerate(uploaded_webs)
+                    }
+
+                    file_signature_web = "_".join(
+                        sorted(file.name for file in uploaded_webs)
+                    )
+
+                    urutan_web = sort_items(
+                        list(label_to_file_web.keys()),
+                        direction="vertical",
+                        key=f"web_sorter_{file_signature_web}"
+                    )
+
+                    ordered_webs = [
+                        label_to_file_web[label]
+                        for label in urutan_web
+                        if label in label_to_file_web
+                    ]
+
+                else:
+                    ordered_webs = uploaded_webs
+
+
+                # Preview
+                st.markdown("#### 👀 Preview Screenshot")
+
+                kolom_preview_web = st.columns(
+                    min(len(ordered_webs), 3)
+                )
+
+                for idx, file in enumerate(ordered_webs):
+                    kolom = kolom_preview_web[
+                        idx % len(kolom_preview_web)
+                    ]
+
+                    with kolom:
+                        st.image(
+                            file,
+                            caption=f"Screenshot {idx + 1}",
+                            use_container_width=True
+                        )
+
+
+                # Analisis
+                if st.button(
+                    "Analisis Screenshot",
+                    type="primary",
+                    key="btn_analisis_web"
+                ):
+                    try:
+                        with st.spinner(
+                            "Menganalisis data..."
+                        ):
+                            hasil_web = analisis_screenshot_pemutakhiran(
+                                ordered_webs
+                            )
+
+                        st.session_state["hasil_analisis_web"] = (
+                            hasil_web.model_dump()
+                        )
+
+                    except Exception as e:
+                        st.error(
+                            f"Gagal menganalisis screenshot: {e}"
+                        )
+
+                if "hasil_analisis_web" in st.session_state:
+
+                    hasil_web = st.session_state["hasil_analisis_web"]
+
+                    st.markdown("### ✨ Hasil Analisis")
+
+                    tanggal_web_review = st.text_input(
+                        "Tanggal Update",
+                        value=hasil_web["tanggal_update"],
+                        key="review_tanggal_web"
+                    )
+
+                    kanal_web_review = st.text_input(
+                        "Kanal Digital",
+                        value=hasil_web["kanal_digital"],
+                        key="review_kanal_web"
+                    )
+
+                    topik_web_review = st.text_area(
+                        "Topik Konten",
+                        value=hasil_web["topik_konten"],
+                        key="review_topik_web"
+                    )
+
+                    if st.button(
+                        "💾 Simpan Pemutakhiran",
+                        type="primary",
+                        key="btn_simpan_web"
+                    ):
+                        try:
+                            with st.spinner("Menyimpan pemutakhiran..."):
+
+                                nama_folder = (
+                                    f"UPDATE_{tanggal_web_review.replace('/', '-')}_"
+                                    f"{kanal_web_review.replace(' ', '-')}"
+                                )
+
+                                hasil_drive_web = upload_screenshot(
+                                    ordered_webs,
+                                    nama_folder,
+                                    st.secrets["DRIVE_WEB_FOLDER_ID"]
+                                )
+
+                                folder_link_web = hasil_drive_web["folder_link"]
+
+                                append_pemutakhiran_row([
+                                    tanggal_web_review,
+                                    kanal_web_review,
+                                    topik_web_review,
+                                    folder_link_web
+                                ])
+
+                            st.session_state["web_simpan_sukses"] = True
+                            st.session_state.pop("hasil_analisis_web", None)
+                            st.session_state["web_uploader_version"] += 1
+
+                            st.rerun()
+
+                        except Exception as e:
+                            st.error(
+                                f"Gagal menyimpan pemutakhiran: {e}"
+                            )
 
     # 3. TABEL REKAPITULASI LOG UPDATE WEBSITE
     st.write("### 📑 Tabel Rekapitulasi Log Update Kanal Digital")
-    
-    df_website = pd.DataFrame({
-        "Tanggal Update": ["22/07/2026", "21/07/2026", "19/07/2026", "15/07/2026"],
-        "Kanal Digital": [
-            "Website BPS", 
-            "Portal PPID", 
-            "Instagram", 
-            "Website BPS"
-        ],
-        "Topik Konten": [
-            "Publikasi Kepulauan Seribu Dalam Angka 2026", 
-            "Update Laporan Akses Informasi Publik Q2", 
-            "Informasi Magang", 
-            "Berita Senam Bersama dan Layanan PST Keliling"
-        ],
-        "Bukti": ["link", "link", "link", "link"],
-        
-    })
-    
-    st.dataframe(df_website, 
-                 use_container_width=True,
-                 hide_index=True,)
+
+    if df_website.empty:
+        st.info("Belum ada data pemutakhiran kanal digital yang tersimpan.")
+    else:
+        st.dataframe(
+            df_website,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Bukti": st.column_config.LinkColumn(
+                    "Bukti",
+                    display_text="📂 Buka Bukti"
+                )
+            }
+        )

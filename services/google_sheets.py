@@ -44,3 +44,239 @@ def get_google_sheet_data():
     data = worksheet.get_all_records()
 
     return pd.DataFrame(data)
+
+def append_pengaduan_row(row_data):
+    config = st.secrets["google_sheets"]
+    db_config = st.secrets["jala_seribu_db"]
+
+    creds = Credentials.from_service_account_info(
+        dict(config),
+        scopes=[
+            "https://www.googleapis.com/auth/spreadsheets"
+        ]
+    )
+
+    client = gspread.authorize(creds)
+
+    spreadsheet = client.open_by_key(
+        db_config["spreadsheet_id"]
+    )
+
+    worksheet = spreadsheet.worksheet(
+        "Saran dan Pengaduan"
+    )
+
+    worksheet.append_row(
+        row_data,
+        value_input_option="USER_ENTERED"
+    )
+
+def get_pengaduan_data():
+    config = st.secrets["google_sheets"]
+    db_config = st.secrets["jala_seribu_db"]
+
+    creds = Credentials.from_service_account_info(
+        dict(config),
+        scopes=[
+            "https://www.googleapis.com/auth/spreadsheets"
+        ]
+    )
+
+    client = gspread.authorize(creds)
+
+    spreadsheet = client.open_by_key(
+        db_config["spreadsheet_id"]
+    )
+
+    worksheet = spreadsheet.worksheet(
+        "Saran dan Pengaduan"
+    )
+
+    data = worksheet.get_all_records()
+
+    return pd.DataFrame(data)
+
+def append_pemutakhiran_row(row_data):
+    config = st.secrets["google_sheets"]
+    db_config = st.secrets["jala_seribu_db"]
+
+    creds = Credentials.from_service_account_info(
+        dict(config),
+        scopes=[
+            "https://www.googleapis.com/auth/spreadsheets"
+        ]
+    )
+
+    client = gspread.authorize(creds)
+
+    spreadsheet = client.open_by_key(
+        db_config["spreadsheet_id"]
+    )
+
+    worksheet = spreadsheet.worksheet(
+        "Pemutakhiran Kanal Digital"
+    )
+
+    worksheet.append_row(
+        row_data,
+        value_input_option="USER_ENTERED"
+    )
+
+def get_pemutakhiran_data():
+    config = st.secrets["google_sheets"]
+    db_config = st.secrets["jala_seribu_db"]
+
+    creds = Credentials.from_service_account_info(
+        dict(config),
+        scopes=[
+            "https://www.googleapis.com/auth/spreadsheets"
+        ]
+    )
+
+    client = gspread.authorize(creds)
+
+    spreadsheet = client.open_by_key(
+        db_config["spreadsheet_id"]
+    )
+
+    worksheet = spreadsheet.worksheet(
+        "Pemutakhiran Kanal Digital"
+    )
+
+    data = worksheet.get_all_records()
+
+    return pd.DataFrame(data)
+
+def append_faq_row(row_data):
+    config = st.secrets["google_sheets"]
+    db_config = st.secrets["jala_seribu_db"]
+
+    creds = Credentials.from_service_account_info(
+        dict(config),
+        scopes=[
+            "https://www.googleapis.com/auth/spreadsheets"
+        ]
+    )
+
+    client = gspread.authorize(creds)
+
+    spreadsheet = client.open_by_key(
+        db_config["spreadsheet_id"]
+    )
+
+    worksheet = spreadsheet.worksheet(
+        "Pertanyaan dan FAQ"
+    )
+
+    worksheet.append_row(
+        row_data,
+        value_input_option="USER_ENTERED"
+    )
+
+def get_faq_data():
+    config = st.secrets["google_sheets"]
+    db_config = st.secrets["jala_seribu_db"]
+
+    creds = Credentials.from_service_account_info(
+        dict(config),
+        scopes=[
+            "https://www.googleapis.com/auth/spreadsheets"
+        ]
+    )
+
+    client = gspread.authorize(creds)
+
+    spreadsheet = client.open_by_key(
+        db_config["spreadsheet_id"]
+    )
+
+    worksheet = spreadsheet.worksheet(
+        "Pertanyaan dan FAQ"
+    )
+
+    data = worksheet.get_all_records()
+
+    return pd.DataFrame(data)
+
+def get_skd_data():
+    config = st.secrets["google_sheets"]
+    db_config = st.secrets["jala_seribu_db"]
+
+    creds = Credentials.from_service_account_info(
+        dict(config),
+        scopes=[
+            "https://www.googleapis.com/auth/spreadsheets"
+        ]
+    )
+
+    client = gspread.authorize(creds)
+
+    spreadsheet = client.open_by_key(
+        db_config["spreadsheet_id"]
+    )
+
+    worksheet = spreadsheet.worksheet(
+        "Progres SKD"
+    )
+
+    data = worksheet.get_all_records()
+
+    return pd.DataFrame(data)
+
+def upsert_skd_row(tanggal_cacah, nama, status_kuesioner):
+    config = st.secrets["google_sheets"]
+    db_config = st.secrets["jala_seribu_db"]
+
+    creds = Credentials.from_service_account_info(
+        dict(config),
+        scopes=[
+            "https://www.googleapis.com/auth/spreadsheets"
+        ]
+    )
+
+    client = gspread.authorize(creds)
+
+    spreadsheet = client.open_by_key(
+        db_config["spreadsheet_id"]
+    )
+
+    worksheet = spreadsheet.worksheet(
+        "Progres SKD"
+    )
+
+    data = worksheet.get_all_records()
+
+    # Cari berdasarkan nama
+    nama_baru = str(nama).strip().lower()
+
+    for index, row in enumerate(data):
+        nama_lama = str(row.get("Nama", "")).strip().lower()
+
+        if nama_lama == nama_baru:
+            # +2 karena:
+            # index Python mulai dari 0
+            # baris 1 Google Sheets adalah header
+            sheet_row = index + 2
+
+            worksheet.update(
+                range_name=f"A{sheet_row}:C{sheet_row}",
+                values=[[
+                    tanggal_cacah,
+                    nama,
+                    status_kuesioner
+                ]]
+            )
+
+            return "updated"
+
+    # Kalau nama belum ditemukan → tambah baris baru
+    worksheet.append_row(
+        [
+            tanggal_cacah,
+            nama,
+            status_kuesioner
+        ],
+        value_input_option="USER_ENTERED"
+    )
+
+    return "inserted"
