@@ -1,9 +1,7 @@
 import io
-import os
-
 import streamlit as st
 
-from google.oauth2.service_account import Credentials
+from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
@@ -12,13 +10,15 @@ SCOPES = [
 ]
 
 def get_drive_service():
-    service_account_info = dict(
-        st.secrets["google_sheets"]
-    )
+    drive_config = st.secrets["google_drive_oauth"]
 
-    creds = Credentials.from_service_account_info(
-        service_account_info,
-        scopes=["https://www.googleapis.com/auth/drive"]
+    creds = Credentials(
+        token=None,
+        refresh_token=drive_config["refresh_token"],
+        token_uri=drive_config["token_uri"],
+        client_id=drive_config["client_id"],
+        client_secret=drive_config["client_secret"],
+        scopes=SCOPES
     )
 
     return build(
