@@ -2449,8 +2449,7 @@ with tab2:
                 )
 
                 if st.button(
-                    "💾 Simpan Pengaduan",
-                    type="primary",
+                    "Simpan Pengaduan",
                     key="btn_simpan_pengaduan"
                 ):
                     try:
@@ -2781,8 +2780,7 @@ with tab3:
                     faq_key_faq_review = hasil_faq["faq_key"]
 
                     if st.button(
-                        "💾 Simpan Pertanyaan",
-                        type="primary",
+                        "Simpan Pertanyaan",
                         key="btn_simpan_faq"
                     ):
                         try:
@@ -3198,7 +3196,6 @@ with tab4:
                         # TOMBOL MASIH DI DALAM IF
                         if st.button(
                             "Simpan Progres",
-                            type="primary",
                             key="btn_simpan_skd"
                         ):
                             try:
@@ -3566,8 +3563,7 @@ with tab5:
                     )
 
                     if st.button(
-                        "💾 Simpan Pemutakhiran",
-                        type="primary",
+                        "Simpan Pemutakhiran",
                         key="btn_simpan_web"
                     ):
                         try:
