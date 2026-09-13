@@ -13,7 +13,7 @@ def get_drive_service():
     drive_config = st.secrets["google_drive_oauth"]
 
     creds = Credentials(
-        token=None,
+        token=drive_config.get("token"),
         refresh_token=drive_config["refresh_token"],
         token_uri=drive_config["token_uri"],
         client_id=drive_config["client_id"],
