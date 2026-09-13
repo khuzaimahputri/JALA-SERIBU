@@ -3,9 +3,7 @@ import os
 
 import streamlit as st
 
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
+from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
@@ -14,39 +12,14 @@ SCOPES = [
 ]
 
 def get_drive_service():
-    token_path = "credentials/token.json"
-    client_secret_path = "credentials/oauth_client.json"
+    service_account_info = dict(
+        st.secrets["google_sheets"]
+    )
 
-    creds = None
-
-    # Kalau token pernah dibuat, pakai lagi
-    if os.path.exists(token_path):
-        creds = Credentials.from_authorized_user_file(
-            token_path,
-            SCOPES
-        )
-
-    # Kalau token tidak ada / expired
-    if not creds or not creds.valid:
-
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                client_secret_path,
-                SCOPES
-            )
-
-            creds = flow.run_local_server(
-                port=0,
-                access_type="offline",
-                prompt="consent"
-            )
-
-        # Simpan token supaya tidak login ulang
-        with open(token_path, "w") as token:
-            token.write(creds.to_json())
+    creds = Credentials.from_service_account_info(
+        service_account_info,
+        scopes=["https://www.googleapis.com/auth/drive"]
+    )
 
     return build(
         "drive",
