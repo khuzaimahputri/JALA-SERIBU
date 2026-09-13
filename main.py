@@ -27,8 +27,8 @@ from services.google_sheets import (
 
 # --- CONFIG HALAMAN ---
 st.set_page_config(
-    page_title="JALA-SERIBU", 
-    page_icon="🌊", 
+    page_title="JALA-SERIBU",
+    page_icon="assets/logo_jala_seribu.png",
     layout="wide"
 )
 
@@ -36,23 +36,175 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-        # /* Hide Streamlit Toolbar */
-        # [data-testid="stToolbar"] {
-        #     display: none !important;
-        # }
+        /* Hide Streamlit Toolbar */
+        [data-testid="stToolbar"] {
+            display: none !important;
+        }
 
-        # [data-testid="stDecoration"] {
-        #     display: none !important;
-        # }
+        [data-testid="stDecoration"] {
+            display: none !important;
+        }
 
-        # [data-testid="stStatusWidget"] {
-        #     display: none !important;
-        # }
+        [data-testid="stStatusWidget"] {
+            display: none !important;
+        }
 
-        /* Mengurangi padding atas halaman */
+        header[data-testid="stHeader"] {
+            display: none !important;
+        }
+
         .block-container {
-            padding-top: 2rem !important;
+            padding-top: 0.2rem !important;
             padding-bottom: 1rem !important;
+
+            padding-left: 2rem !important;
+            padding-right: 2rem !important;
+
+            max-width: 100% !important;
+        }
+
+        /* =========================
+        HEADER JALA-SERIBU
+        ========================= */
+
+        .jala-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+
+            height: auto !important;
+            min-height: 0 !important;
+
+            padding: 6px 0 4px 0;
+            margin: 0;
+
+            overflow: visible !important;
+            
+        }
+
+        .jala-logo {
+            width: 44px;
+            height: 44px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+
+        .jala-brand-text {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+
+            height: auto !important;
+            overflow: visible !important;
+            gap: 2px;
+        }
+
+        .jala-title {
+            color: #002B6A;
+            font-size: 25px;
+            font-weight: 800;
+            letter-spacing: -0.8px;
+
+            line-height: 0.7 !important;
+
+            margin-top: 5px !important;
+            padding: 0;
+
+            overflow: visible !important;
+        }
+
+        .jala-subtitle {
+            color: #8A8F98;
+            font-size: 14px;
+            line-height: 1.25;
+            margin-top: 5px;
+        }
+
+        /* =========================================
+        TOP NAVIGATION JALA-SERIBU
+        ========================================= */
+
+        /* Anchor posisi navbar */
+        div[data-testid="stTabs"] {
+            position: relative !important;
+        }
+
+        /* KAPSUL BESAR NAVBAR */
+        div[data-testid="stTabs"] div[data-baseweb="tab-list"] {
+            position: absolute !important;
+            right: 0 !important;
+            top: -48px !important;
+
+            width: auto !important;
+
+            display: flex !important;
+            justify-content: flex-end !important;
+            align-items: center !important;
+
+            gap: 4px !important;
+
+            padding: 3px !important;
+
+            background: linear-gradient(
+                135deg,
+                #F8FBFF 0%,
+                #F1F6FC 100%
+            ) !important;
+
+            border: 1px solid #DCE6F2 !important;
+            border-radius: 999px !important;
+
+            box-shadow: 0 2px 8px rgba(0, 43, 106, 0.05) !important;
+
+            z-index: 10 !important;
+        }
+
+        /* MENU BIASA */
+        div[data-testid="stTabs"] button[data-baseweb="tab"] {
+            height: 32px !important;
+
+            padding: 0 16px !important;
+
+            border-radius: 999px !important;
+            border: none !important;
+
+            background: transparent !important;
+
+            color: #475569 !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+
+            transition: all 0.15s ease !important;
+        }
+
+        /* HOVER */
+        div[data-testid="stTabs"] button[data-baseweb="tab"]:hover {
+            background: rgba(255, 255, 255, 0.65) !important;
+            color: #002B6A !important;
+        }
+
+        /* MENU AKTIF */
+        div[data-testid="stTabs"]
+        button[data-baseweb="tab"][aria-selected="true"] {
+            background: linear-gradient(
+                135deg,
+                #FFFFFF 0%,
+                #EAF3FF 55%,
+                #DCEBFF 100%
+            ) !important;
+
+            color: #002B6A !important;
+            font-weight: 700 !important;
+
+            box-shadow:
+                0 2px 5px rgba(0, 43, 106, 0.10),
+                inset 0 0 0 1px rgba(0, 43, 106, 0.06) !important;
+        }
+
+        /* HILANGKAN GARIS AKTIF BAWAAN */
+        div[data-testid="stTabs"] div[data-baseweb="tab-highlight"],
+        div[data-testid="stTabs"] div[data-baseweb="tab-border"] {
+            display: none !important;
         }
 
         /* Menghilangkan jarak bawah pada judul utama (h1) */
@@ -63,14 +215,14 @@ st.markdown(
             padding-bottom: 5px !important;
         }
 
-        /* Naikkan title JALA-SERIBU sedikit */
-        div[data-testid="stHeadingWithActionElements"]:first-of-type {
-            margin-top: -13px !important;
-        }
-
-        /* Naikkan caption pertama sedikit */
-        div[data-testid="stCaptionContainer"]:first-of-type {
-            margin-top: -4px !important;
+        /* JUDUL UTAMA SETIAP HALAMAN */
+        .jala-page-title {
+            color: #16477C !important;
+            font-size: 30px;
+            font-weight: 600;
+            line-height: 1.2;
+            margin: 8px 0 15px 0;
+            letter-spacing: -0.3px;
         }
 
         /* Caption khusus baris update + periode + download */
@@ -270,6 +422,22 @@ st.markdown(
             justify-content: flex-start !important;
         }
 
+        .jala-footer {
+            margin-top: 50px;
+            padding: 15px 0 6px 0;
+            border-top: 1px solid #E7EDF5;
+
+            text-align: center;
+            color: #8A94A3;
+            font-size: 12px;
+            font-weight: 400;
+        }
+
+        .footer-bps {
+            color: #6F91B5;
+            font-weight: 500;
+        }
+
         /* =========================================
         RESPONSIVE - MOBILE
         ========================================= */
@@ -336,7 +504,29 @@ st.markdown(
                 width: 100% !important;
                 max-width: 100% !important;
             }
-        }        
+        }    
+
+        @media (max-width: 1050px) {
+
+            div[data-testid="stTabs"] div[data-baseweb="tab-list"] {
+                position: static !important;
+
+                width: fit-content !important;
+                max-width: 100% !important;
+
+                justify-content: flex-start !important;
+
+                overflow-x: auto !important;
+                white-space: nowrap !important;
+
+                margin-top: 4px !important;
+                margin-bottom: 8px !important;
+            }
+
+            .jala-brand {
+                margin-bottom: 4px !important;
+            }
+        }
 
     </style>
 """,
@@ -344,8 +534,21 @@ st.markdown(
 )
 
 # --- HEADER/TITLE ---
-st.title("🌊 JALA-SERIBU")
-st.caption("Jaringan Agregasi Layanan dan Akuntabilitas BPS Kabupaten Kepulauan Seribu")
+import base64
+
+with open("assets/logo_jala_seribu.png", "rb") as f:
+    logo_base64 = base64.b64encode(f.read()).decode()
+
+st.markdown(
+    f"""<div class="jala-brand">
+<img src="data:image/png;base64,{logo_base64}" class="jala-logo">
+<div class="jala-brand-text">
+<div class="jala-title">JALA-SERIBU</div>
+<div class="jala-subtitle">Jaringan Agregasi Layanan dan Akuntabilitas BPS Kabupaten Kepulauan Seribu</div>
+</div>
+</div>""",
+    unsafe_allow_html=True
+)
 
 # --- GLOBAL CONSTANTA ---
 kategori_jenis_tamu = [
@@ -857,6 +1060,205 @@ def get_triwulan(bulan):
     else:
         return 4
 
+NAMA_BULAN = [
+    "",
+    "Januari", "Februari", "Maret", "April",
+    "Mei", "Juni", "Juli", "Agustus",
+    "September", "Oktober", "November", "Desember"
+]
+
+def siapkan_filter_periode(df, kolom_tanggal):
+    df_temp = df.copy()
+
+    df_temp["_tanggal_filter"] = pd.to_datetime(
+        df_temp[kolom_tanggal],
+        format="%d/%m/%Y",
+        errors="coerce"
+    )
+
+    df_temp = df_temp.dropna(
+        subset=["_tanggal_filter"]
+    )
+
+    periode_bulan = (
+        df_temp["_tanggal_filter"]
+        .dt.to_period("M")
+        .drop_duplicates()
+        .sort_values(ascending=False)
+        .tolist()
+    )
+
+    opsi_periode = []
+
+    # Bulanan
+    for periode in periode_bulan:
+        opsi_periode.append(
+            f"{NAMA_BULAN[periode.month]} {periode.year}"
+        )
+
+    # Triwulanan
+    triwulan_tersedia = set()
+
+    for periode in periode_bulan:
+        triwulan_tersedia.add(
+            (
+                periode.year,
+                get_triwulan(periode.month)
+            )
+        )
+
+    for tahun, triwulan in sorted(
+        triwulan_tersedia,
+        reverse=True
+    ):
+        opsi_periode.append(
+            f"Triwulan {romawi[triwulan]} {tahun}"
+        )
+
+    return df_temp, opsi_periode
+
+def filter_data_periode(df, periode_pilih):
+
+    if periode_pilih.startswith("Triwulan"):
+
+        _, nomor_romawi, tahun = periode_pilih.split()
+
+        nomor_triwulan = romawi_ke_angka[nomor_romawi]
+        tahun = int(tahun)
+
+        bulan_awal = (nomor_triwulan - 1) * 3 + 1
+        bulan_akhir = bulan_awal + 2
+
+        hasil = df[
+            (df["_tanggal_filter"].dt.year == tahun) &
+            (df["_tanggal_filter"].dt.month >= bulan_awal) &
+            (df["_tanggal_filter"].dt.month <= bulan_akhir)
+        ].copy()
+
+        nama_file = (
+            f"Triwulan_{nomor_triwulan}_{tahun}"
+        )
+
+    else:
+
+        nama_bulan, tahun = periode_pilih.split()
+        tahun = int(tahun)
+
+        nomor_bulan = NAMA_BULAN.index(nama_bulan)
+
+        hasil = df[
+            (df["_tanggal_filter"].dt.year == tahun) &
+            (df["_tanggal_filter"].dt.month == nomor_bulan)
+        ].copy()
+
+        nama_file = (
+            f"{nama_bulan}_{tahun}"
+        )
+
+    hasil = hasil.drop(
+        columns=["_tanggal_filter"],
+        errors="ignore"
+    )
+
+    return hasil, nama_file
+
+def buat_excel_filter(df, nama_sheet="Data"):
+    output = BytesIO()
+
+    with pd.ExcelWriter(
+        output,
+        engine="openpyxl"
+    ) as writer:
+
+        df.to_excel(
+            writer,
+            index=False,
+            sheet_name=nama_sheet
+        )
+
+        ws = writer.sheets[nama_sheet]
+
+        # =========================
+        # STYLE DASAR
+        # =========================
+        fill_header = PatternFill(
+            fill_type="solid",
+            fgColor="1F4E78"
+        )
+
+        font_header = Font(
+            bold=True,
+            color="FFFFFF"
+        )
+
+        garis_tipis = Side(
+            style="thin",
+            color="B7B7B7"
+        )
+
+        border_tabel = Border(
+            left=garis_tipis,
+            right=garis_tipis,
+            top=garis_tipis,
+            bottom=garis_tipis
+        )
+
+        # =========================
+        # HEADER
+        # =========================
+        for cell in ws[1]:
+            cell.fill = fill_header
+            cell.font = font_header
+            cell.border = border_tabel
+            cell.alignment = Alignment(
+                horizontal="center",
+                vertical="center",
+                wrap_text=True
+            )
+
+        # =========================
+        # ISI TABEL
+        # =========================
+        for row in ws.iter_rows(
+            min_row=2,
+            max_row=ws.max_row,
+            min_col=1,
+            max_col=ws.max_column
+        ):
+            for cell in row:
+                cell.border = border_tabel
+                cell.alignment = Alignment(
+                    vertical="top",
+                    wrap_text=True
+                )
+
+        # Freeze header
+        ws.freeze_panes = "A2"
+
+        # Autofilter
+        ws.auto_filter.ref = ws.dimensions
+
+        # =========================
+        # LEBAR KOLOM OTOMATIS
+        # =========================
+        for column_cells in ws.columns:
+            max_length = 0
+            column_letter = column_cells[0].column_letter
+
+            for cell in column_cells:
+                if cell.value is not None:
+                    max_length = max(
+                        max_length,
+                        len(str(cell.value))
+                    )
+
+            ws.column_dimensions[column_letter].width = min(
+                max(max_length + 2, 12),
+                45
+            )
+
+    return output.getvalue()
+
 romawi = {
     1: "I",
     2: "II",
@@ -963,7 +1365,7 @@ def buat_rekap_bulanan(
         )
 
     return rekap
-
+    
 class HasilPengaduan(BaseModel):
     tanggal: str
     platform: str
@@ -1299,11 +1701,11 @@ def analisis_screenshot_skd(files):
 
 # --- TAB UTAMA ---
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "📊 Overview Kunjungan PST", 
-    "📩 Saran & Pengaduan", 
-    "❓ Pertanyaan & FAQ", 
-    "📈 Progres SKD",
-    "🌐 Pemutakhiran Kanal Digital"
+    "Overview",
+    "Saran & Pengaduan",
+    "Pertanyaan & FAQ",
+    "Progres SKD",
+    "Kanal Digital"
 ])
 
 # ==========================================
@@ -1395,7 +1797,7 @@ with tab1:
 
         with col_update:
             st.caption(
-                f"🔄 *Data diperbarui otomatis setiap 1 jam* | "
+                f"🗘 *Data diperbarui otomatis setiap 1 jam* | "
                 f"*Terakhir diperbarui: {waktu_update}*"
             )
 
@@ -1504,15 +1906,14 @@ with tab1:
 
             label_perbandingan = "dari bulan lalu"
 
-
         # Judul dashboard mengikuti periode
-        judul_dashboard.subheader(
-            f"Ringkasan Kunjungan PST {label_periode}"
+        judul_dashboard.markdown(
+            f'<div class="jala-page-title">Ringkasan Kunjungan PST {label_periode}</div>',
+            unsafe_allow_html=True
         )
 
-
         # =========================
-        # 1. TOTAL TAMU
+        # 1. TOTAL KUNJUNGAN
         # =========================
 
         total_tamu = len(df_periode)
@@ -1703,11 +2104,10 @@ with tab1:
             nama_file_periode
         )
 
-
         # Tombol selalu aktif
         with col_download:
             st.download_button(
-                label="📥 Unduh Data",
+                label="⎙ Unduh Data",
                 data=excel_overview,
                 file_name=(
                     f"Overview_Kunjungan_Tamu_"
@@ -1726,8 +2126,8 @@ with tab1:
         col1, col2, col3 = st.columns(3)
 
         col1.metric(
-            "Total Tamu",
-            f"{total_tamu} Orang",
+            "Total Kunjungan",
+            f"{total_tamu} Kunjungan",
             delta=delta_total
         )
 
@@ -1813,17 +2213,32 @@ with tab1:
                 )
 
                 fig_donut.update_traces(
-                    textinfo="label+percent",
-                    textposition="outside",
-                    textfont=dict(size=11),
+                    textinfo="none",
                     selector=dict(type="pie"),
                     domain=dict(
-                        x=[0.18, 0.88],
-                        y=[0.12, 0.88]
+                        x=[0.08, 0.92],
+                        y=[0.20, 1.00]
+                    ),
+                    hovertemplate=(
+                        "<b>%{label}</b><br>"
+                        "%{value} kunjungan<br>"
+                        "%{percent}"
+                        "<extra></extra>"
                     )
                 )
 
                 fig_donut.update_layout(
+                    showlegend=True,
+                    legend=dict(
+                        orientation="h",
+                        yanchor="top",
+                        y=0.10,  
+                        xanchor="center",
+                        x=0.5,
+                        font=dict(size=10),
+                        entrywidth=160,
+                        entrywidthmode="pixels"
+                    ),
                     height=250,
                     margin=dict(
                         t=30,
@@ -1831,7 +2246,6 @@ with tab1:
                         l=75,
                         r=70
                     ),
-                    showlegend=False,
                     uniformtext_minsize=9,
                     uniformtext_mode="show"
                 )
@@ -1847,13 +2261,16 @@ with tab1:
 # TAB 2: SARAN & PENGADUAN 
 # ==========================================
 with tab2:
-    st.subheader("Repositori Saran & Pengaduan")
+    st.markdown(
+        '<div class="jala-page-title">Repositori Saran & Pengaduan</div>',
+        unsafe_allow_html=True
+    )
 
     if st.session_state.pop("sp_simpan_sukses", False):
         st.success("✅ Data berhasil disimpan!")
 
     # Upload Box Screenshot
-    with st.expander("📸 Upload Screenshot", expanded=True):
+    with st.expander("⛶ Upload Screenshot", expanded=True):
 
         # Untuk reset file uploader setelah pengaduan berhasil disimpan
         if "sp_uploader_version" not in st.session_state:
@@ -1872,7 +2289,7 @@ with tab2:
             # Kalau lebih dari 1 screenshot, tampilkan fitur pengurutan
             if len(uploaded_files) > 1:
 
-                st.markdown("#### 🔀 Urutan Screenshot")
+                st.markdown("###### ⇄ Urutan Screenshot")
                 st.caption(
                     "Drag nama file untuk menyesuaikan urutan percakapan "
                     "sebelum dianalisis."
@@ -1891,7 +2308,36 @@ with tab2:
                 urutan_file = sort_items(
                     list(label_to_file.keys()),
                     direction="vertical",
-                    key=f"sp_sorter_{file_signature}"
+                    key=f"sp_sorter_{file_signature}",
+                    custom_style="""
+                    .sortable-component,
+                    .sortable-container,
+                    ul,
+                    ol {
+                        background: transparent !important;
+                        border: none !important;
+                        box-shadow: none !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
+                    }
+
+                    .sortable-item {
+                        background: #F3F8FE !important;
+                        color: #16477C !important;
+
+                        border: 1px solid #D6E4F2 !important;
+                        border-radius: 8px !important;
+
+                        min-height: 30px !important;
+                        padding: 2px 7px !important;
+                        margin-bottom: 3px !important;
+
+                        font-size: 13px !important;
+                        font-weight: 500 !important;
+
+                        box-shadow: none !important;
+                    }
+                    """
                 )
 
                 ordered_files = [
@@ -1906,14 +2352,17 @@ with tab2:
 
 
             # PREVIEW
-            st.markdown("#### 👀 Preview Screenshot")
+            st.markdown("###### 👁 Preview Screenshot")
+
+            jumlah_kolom = min(len(ordered_files), 4)
 
             kolom_preview = st.columns(
-                min(len(ordered_files), 3)
+                [1, 1, 1, 1],
+                gap="small"
             )
 
             for idx, file in enumerate(ordered_files):
-                kolom = kolom_preview[idx % len(kolom_preview)]
+                kolom = kolom_preview[idx % 4]
 
                 with kolom:
                     st.image(
@@ -1922,11 +2371,9 @@ with tab2:
                         use_container_width=True
                     )
 
-
             # TOMBOL ANALISIS
             if st.button(
                 "Analisis Screenshot",
-                type="primary",
                 key="btn_analisis_sp"
             ):
 
@@ -1950,7 +2397,7 @@ with tab2:
 
                 hasil = st.session_state["hasil_analisis_sp"]
 
-                st.markdown("### ✨ Hasil Analisis")
+                st.markdown("### Hasil Analisis")
 
                 tanggal_review = st.text_input(
                     "Tanggal",
@@ -1977,8 +2424,8 @@ with tab2:
                 )
 
                 pilihan_status = [
-                    "🔴 Belum Direspon",
-                    "🟢 Selesai"
+                    "⌛︎ Belum Direspon",
+                    "✔ Selesai"
                 ]
 
                 status_ai = hasil["status_tindak_lanjut"]
@@ -2026,9 +2473,9 @@ with tab2:
 
                             # 3. Rapikan status sebelum masuk Google Sheets
                             status_sheet = (
-                                "🟢 Selesai"
+                                "✔ Selesai"
                                 if "Selesai" in status_review
-                                else "🔴 Belum Direspon"
+                                else "⌛︎ Belum Direspon"
                             )
 
                             # 4. Simpan hasil review ke Database JALA-SERIBU
@@ -2054,16 +2501,64 @@ with tab2:
                     except Exception as e:
                         st.error(f"Gagal menyimpan pengaduan: {e}")
 
-    st.write("### 📑 Tabel Rekapitulasi Pengaduan")
+    st.write("##### 🗐 Tabel Rekapitulasi Pengaduan")
     
-    # Tsbel rekapitulasi Saran dan Pengaduan
+    # Tabel rekapitulasi Saran dan Pengaduan
     df_pengaduan = get_pengaduan_data()
 
     if df_pengaduan.empty:
         st.info("Belum ada data saran/pengaduan yang tersimpan")
+
     else:
+        df_pengaduan_filter, opsi_pengaduan = (
+            siapkan_filter_periode(
+                df_pengaduan,
+                "Tanggal"
+            )
+        )
+
+        col_info_sp, col_periode_sp, col_download_sp = st.columns(
+            [7, 1.8, 0.65],
+            gap="small",
+            vertical_alignment="center"
+        )
+
+        with col_info_sp:
+            st.caption("Filter data berdasarkan periode")
+
+        with col_periode_sp:
+            periode_sp = st.selectbox(
+                "Periode Pengaduan",
+                opsi_pengaduan,
+                index=0,
+                label_visibility="collapsed",
+                key="periode_pengaduan"
+            )
+
+        df_pengaduan_tampil, nama_file_sp = filter_data_periode(
+            df_pengaduan_filter,
+            periode_sp
+        )
+
+        excel_pengaduan = buat_excel_filter(
+            df_pengaduan_tampil,
+            "Saran dan Pengaduan"
+        )
+
+        with col_download_sp:
+            st.download_button(
+                "⎙ Unduh Data",
+                data=excel_pengaduan,
+                file_name=f"Pengaduan_{nama_file_sp}.xlsx",
+                mime=(
+                    "application/vnd.openxmlformats-officedocument."
+                    "spreadsheetml.sheet"
+                ),
+                key="download_pengaduan"
+            )
+
         st.dataframe(
-            df_pengaduan,
+            df_pengaduan_tampil,
             use_container_width=True,
             hide_index=True,
             row_height=100,
@@ -2094,7 +2589,7 @@ with tab2:
                 ),
                 "Bukti": st.column_config.LinkColumn(
                     "Bukti",
-                    display_text="📂 Buka Bukti",
+                    display_text="🖿 Lihat Bukti",
                     width="small",
                 ),
             },
@@ -2104,7 +2599,10 @@ with tab2:
 # TAB 3: PERTANYAAN DAN FAQ
 # ==========================================
 with tab3:
-    st.subheader("Repositori Pertanyaan Publik dan FAQ")
+    st.markdown(
+        '<div class="jala-page-title">Repositori Pertanyaan Publik dan FAQ</div>',
+        unsafe_allow_html=True
+    )
 
     if st.session_state.pop("faq_simpan_sukses", False):
         st.success("✅ Pertanyaan berhasil disimpan!")
@@ -2113,7 +2611,7 @@ with tab3:
         st.session_state["faq_uploader_version"] = 0
 
     # 1. FORM INPUT SCREENSHOT PERTANYAAN BARU
-    with st.expander("📸 Upload Screenshot", expanded=False):
+    with st.expander("⛶ Upload Screenshot", expanded=False):
             uploaded_faqs = st.file_uploader(
                 "Unggah satu atau beberapa screenshot untuk 1 pertanyaan. Jika percakapan terdiri dari beberapa screenshot, unggah seluruh screenshot sekaligus sesuai urutan percakapan.", 
                 type=["jpg", "jpeg", "png"], 
@@ -2127,7 +2625,7 @@ with tab3:
                 # Kalau screenshot lebih dari 1, tampilkan sorter
                 if len(uploaded_faqs) > 1:
 
-                    st.markdown("#### 🔀 Urutan Screenshot")
+                    st.markdown("###### ⇄ Urutan Screenshot")
                     st.caption(
                         "Drag nama file untuk menyesuaikan urutan "
                         "percakapan sebelum dianalisis."
@@ -2145,7 +2643,32 @@ with tab3:
                     urutan_faq = sort_items(
                         list(label_to_file_faq.keys()),
                         direction="vertical",
-                        key=f"faq_sorter_{file_signature_faq}"
+                        key=f"faq_sorter_{file_signature_faq}",
+                        custom_style="""
+                        .sortable-component,
+                        .sortable-container,
+                        ul,
+                        ol {
+                            background: transparent !important;
+                            border: none !important;
+                            box-shadow: none !important;
+                            padding: 0 !important;
+                            margin: 0 !important;
+                        }
+
+                        .sortable-item {
+                            background: #F3F8FE !important;
+                            color: #16477C !important;
+                            border: 1px solid #D6E4F2 !important;
+                            border-radius: 8px !important;
+                            min-height: 30px !important;
+                            padding: 2px 7px !important;
+                            margin-bottom: 3px !important;
+                            font-size: 13px !important;
+                            font-weight: 500 !important;
+                            box-shadow: none !important;
+                        }
+                        """
                     )
 
                     ordered_faqs = [
@@ -2159,16 +2682,15 @@ with tab3:
 
 
                 # Preview
-                st.markdown("#### 👀 Preview Screenshot")
+                st.markdown("###### 👁 Preview Screenshot")
 
                 kolom_preview_faq = st.columns(
-                    min(len(ordered_faqs), 3)
+                    [1, 1, 1, 1],
+                    gap="small"
                 )
 
                 for idx, file in enumerate(ordered_faqs):
-                    kolom = kolom_preview_faq[
-                        idx % len(kolom_preview_faq)
-                    ]
+                    kolom = kolom_preview_faq[idx % 4]
 
                     with kolom:
                         st.image(
@@ -2177,11 +2699,9 @@ with tab3:
                             use_container_width=True
                         )
 
-
                 # Analisis
                 if st.button(
                     "Analisis Screenshot",
-                    type="primary",
                     key="btn_analisis_faq"
                 ):
                     try:
@@ -2207,7 +2727,7 @@ with tab3:
                     # FAQ Key untuk pengelompokan pertanyaan serupa
                     faq_key_faq_review = hasil_faq["faq_key"]
 
-                    st.markdown("### ✨ Hasil Analisis")
+                    st.markdown("### Hasil Analisis")
 
                     tanggal_faq_review = st.text_input(
                         "Tanggal",
@@ -2234,8 +2754,8 @@ with tab3:
                     )
 
                     pilihan_status_faq = [
-                        "🔴 Belum Direspon",
-                        "🟢 Selesai"
+                        "⌛︎ Belum Direspon",
+                        "✔ Selesai"
                     ]
 
                     status_ai_faq = hasil_faq["status_tindak_lanjut"]
@@ -2285,9 +2805,9 @@ with tab3:
 
                                 # 3. Rapikan status untuk Google Sheets
                                 status_sheet_faq = (
-                                    "🟢 Selesai"
+                                    "✔ Selesai"
                                     if "Selesai" in status_faq_review
-                                    else "🔴 Belum Direspon"
+                                    else "⌛︎ Belum Direspon"
                                 )
 
                                 # 4. Simpan ke Database JALA-SERIBU
@@ -2314,25 +2834,74 @@ with tab3:
                             )
 
     # 2. TABEL REKAPITULASI SEMUA PERTANYAAN
-    st.write("### 📑 Tabel Rekapitulasi Pertanyaan Masuk")
+    st.write("##### 🗐 Tabel Rekapitulasi Pertanyaan Masuk")
+
     df_faq = get_faq_data()
-
-    df_faq_display = df_faq.drop(
-        columns=["FAQ Key"],
-        errors="ignore"
-    )
-
-    # bikin frekuensi untuk tampilan
-    if not df_faq.empty:
-        frekuensi_topik = (
-            df_faq["FAQ Key"]
-            .fillna("-")
-            .value_counts()
-        )
 
     if df_faq.empty:
         st.info("Belum ada data pertanyaan yang tersimpan.")
+
     else:
+        # =========================
+        # FILTER PERIODE TABEL
+        # =========================
+        df_faq_filter, opsi_faq = siapkan_filter_periode(
+            df_faq,
+            "Tanggal"
+        )
+
+        col_info_faq, col_periode_faq, col_download_faq = st.columns(
+            [7, 1.8, 0.65],
+            gap="small",
+            vertical_alignment="center"
+        )
+
+        with col_info_faq:
+            st.caption("Filter data berdasarkan periode")
+
+        with col_periode_faq:
+            periode_faq = st.selectbox(
+                "Periode Pertanyaan",
+                opsi_faq,
+                index=0,
+                label_visibility="collapsed",
+                key="periode_pertanyaan"
+            )
+
+        df_faq_tampil, nama_file_faq = filter_data_periode(
+            df_faq_filter,
+            periode_faq
+        )
+
+        # FAQ Key tidak perlu ditampilkan / diekspor
+        df_faq_display = df_faq_tampil.drop(
+            columns=["FAQ Key"],
+            errors="ignore"
+        )
+
+        # =========================
+        # EXCEL SESUAI FILTER
+        # =========================
+        excel_faq = buat_excel_filter(
+            df_faq_display,
+            "Pertanyaan Masuk"
+        )
+
+        with col_download_faq:
+            st.download_button(
+                "⎙ Unduh Data",
+                data=excel_faq,
+                file_name=f"Pertanyaan_{nama_file_faq}.xlsx",
+                mime=(
+                    "application/vnd.openxmlformats-officedocument."
+                    "spreadsheetml.sheet"
+                ),
+                key="download_pertanyaan"
+            )
+
+        # =========================
+        # TABEL SESUAI FILTER
+        # =========================
         st.dataframe(
             df_faq_display,
             use_container_width=True,
@@ -2365,14 +2934,23 @@ with tab3:
                 ),
                 "Bukti": st.column_config.LinkColumn(
                     "Bukti",
-                    display_text="📂 Buka Bukti",
+                    display_text="🖿 Buka Bukti",
                     width="small",
                 ),
             },
         )
 
+    # Frekuensi FAQ memakai seluruh data, bukan hasil filter
+    frekuensi_topik = (
+        df_faq["FAQ Key"]
+        .fillna("-")
+        .value_counts()
+        if not df_faq.empty
+        else pd.Series(dtype=int)
+    )
+
     # 3. PERTANYAAN POPULER / TOP FAQ (KARTU RINGKASAN JAWABAN)
-    st.write("### ⭐ Pertanyaan Paling Populer (FAQ)")
+    st.write("##### ✦ Pertanyaan Paling Populer (FAQ)")
 
     if df_faq.empty:
         st.info("Belum ada data untuk membentuk FAQ.")
@@ -2504,9 +3082,13 @@ with tab4:
         1.0
     )
 
-    st.subheader(
-        f"Progres Survei Kebutuhan Data (SKD) "
-        f"Triwulan {nama_triwulan_skd} {tahun_skd}"
+    st.markdown(
+        f"""
+        <div class="jala-page-title">
+            Progres Survei Kebutuhan Data (SKD) Triwulan {nama_triwulan_skd} {tahun_skd}
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
     if "skd_simpan_sukses" in st.session_state:
@@ -2552,7 +3134,7 @@ with tab4:
         if "skd_uploader_version" not in st.session_state:
             st.session_state["skd_uploader_version"] = 0
 
-        with st.expander("📸 Upload Screenshot", expanded=True):
+        with st.expander("⛶ Upload Screenshot", expanded=True):
                 uploaded_skds = st.file_uploader(
                     "Upload screenshot progres pengisian survei. Dapat upload multiple files.", 
                     type=["jpg", "jpeg", "png"], 
@@ -2562,16 +3144,15 @@ with tab4:
                 
                 # Pengecekan apakah ada file dalam list uploaded_skds
                 if uploaded_skds:
-                    st.markdown("#### 👀 Preview Screenshot")
+                    st.markdown("###### 👁 Preview Screenshot")
 
                     kolom_preview_skd = st.columns(
-                        min(len(uploaded_skds), 3)
+                        [1, 1, 1, 1],
+                        gap="small"
                     )
 
                     for idx, file in enumerate(uploaded_skds):
-                        kolom = kolom_preview_skd[
-                            idx % len(kolom_preview_skd)
-                        ]
+                        kolom = kolom_preview_skd[idx % 4]
 
                         with kolom:
                             st.image(
@@ -2582,7 +3163,6 @@ with tab4:
 
                     if st.button(
                         "Analisis Screenshot",
-                        type="primary",
                         key="btn_analisis_skd"
                     ):
                         try:
@@ -2603,7 +3183,7 @@ with tab4:
 
                     if "hasil_analisis_skd" in st.session_state:
 
-                        st.markdown("### ✨ Hasil Analisis")
+                        st.markdown("### Hasil Analisis")
 
                         df_review_skd = pd.DataFrame(
                             st.session_state["hasil_analisis_skd"]
@@ -2671,7 +3251,7 @@ with tab4:
             )
                     
     with col_skd2:
-        st.write("#### 📂 Akses Laporan Resmi SKD")
+        st.write("##### 🗁 Akses Laporan Resmi SKD")
 
         laporan_tahun = laporan_skd.get(tahun_skd, {})
 
@@ -2681,13 +3261,13 @@ with tab4:
 
             if link_laporan:
                 st.link_button(
-                    f"📄 Laporan SKD Triwulan {nama_tw} {tahun_skd}",
+                    f"🗎 Laporan SKD Triwulan {nama_tw} {tahun_skd}",
                     link_laporan,
                     use_container_width=True
                 )
             else:
                 st.button(
-                    f"📄 Laporan SKD Triwulan {nama_tw} {tahun_skd} (Drafting)",
+                    f"🗎 Laporan SKD Triwulan {nama_tw} {tahun_skd} (Drafting)",
                     disabled=True,
                     use_container_width=True,
                     key=f"laporan_skd_{tahun_skd}_{tw}"
@@ -2697,7 +3277,10 @@ with tab4:
 # TAB 5: PEMUTAKHIRAN KANAL DIGITAL
 # ==========================================
 with tab5:
-    st.subheader("Pemutakhiran Kanal Digital")
+    st.markdown(
+        '<div class="jala-page-title">Pemutakhiran Kanal Digital</div>',
+        unsafe_allow_html=True
+    )
 
     if st.session_state.pop("web_simpan_sukses", False):
         st.success("✅ Data berhasil disimpan!")
@@ -2705,53 +3288,125 @@ with tab5:
     # Ambil data asli
     df_website = get_pemutakhiran_data()
 
-    # 1. Metric Cards Ringkasan Update
-    col_web1, col_web2, col_web3 = st.columns(3)
-
     if df_website.empty:
+        st.info("Belum ada data pemutakhiran kanal digital yang tersimpan.")
+
+        df_website_tampil = df_website
 
         total_update = 0
         kanal_aktif = "-"
         jumlah_kanal_aktif = 0
         update_terakhir = "-"
+        tanggal_update_terakhir = None
 
     else:
-
-        # Total update
-        total_update = len(df_website)
-
-        # Kanal paling aktif
-        kanal_counts = df_website["Kanal Digital"].value_counts()
-
-        kanal_aktif = kanal_counts.index[0]
-        jumlah_kanal_aktif = int(kanal_counts.iloc[0])
-
-        # Update terakhir
-        tanggal_series = pd.to_datetime(
-            df_website["Tanggal Update"],
-            format="%d/%m/%Y",
-            errors="coerce"
+        # =========================
+        # FILTER PERIODE
+        # =========================
+        df_website_filter, opsi_web = siapkan_filter_periode(
+            df_website,
+            "Tanggal Update"
         )
 
-        tanggal_max = tanggal_series.max()
+        col_info_web, col_periode_web, col_download_web = st.columns(
+            [7, 1.8, 0.65],
+            gap="small",
+            vertical_alignment="center"
+        )
 
-        if pd.notna(tanggal_max):
-            tanggal_sekarang = pd.Timestamp.today().normalize()
-            selisih_hari = (tanggal_sekarang - tanggal_max.normalize()).days
+        with col_info_web:
+            st.caption("Filter data berdasarkan periode")
 
-            if selisih_hari == 0:
-                update_terakhir = "Hari ini"
-            elif selisih_hari == 1:
-                update_terakhir = "Kemarin"
-            else:
-                update_terakhir = f"{selisih_hari} hari lalu"
+        with col_periode_web:
+            periode_web = st.selectbox(
+                "Periode Kanal Digital",
+                opsi_web,
+                index=0,
+                label_visibility="collapsed",
+                key="periode_web"
+            )
 
-            tanggal_update_terakhir = tanggal_max.strftime("%d/%m/%Y")
+        df_website_tampil, nama_file_web = filter_data_periode(
+            df_website_filter,
+            periode_web
+        )
 
-        else:
+        # =========================
+        # DOWNLOAD SESUAI FILTER
+        # =========================
+        excel_web = buat_excel_filter(
+            df_website_tampil,
+            "Kanal Digital"
+        )
+
+        with col_download_web:
+            st.download_button(
+                "⎙ Unduh Data",
+                data=excel_web,
+                file_name=f"Kanal_Digital_{nama_file_web}.xlsx",
+                mime=(
+                    "application/vnd.openxmlformats-officedocument."
+                    "spreadsheetml.sheet"
+                ),
+                key="download_web"
+            )
+
+        # =========================
+        # KPI SESUAI FILTER
+        # =========================
+        total_update = len(df_website_tampil)
+
+        if df_website_tampil.empty:
+            kanal_aktif = "-"
+            jumlah_kanal_aktif = 0
             update_terakhir = "-"
             tanggal_update_terakhir = None
 
+        else:
+            kanal_counts = (
+                df_website_tampil["Kanal Digital"]
+                .value_counts()
+            )
+
+            kanal_aktif = kanal_counts.index[0]
+            jumlah_kanal_aktif = int(kanal_counts.iloc[0])
+
+            tanggal_series = pd.to_datetime(
+                df_website_tampil["Tanggal Update"],
+                format="%d/%m/%Y",
+                errors="coerce"
+            )
+
+            tanggal_max = tanggal_series.max()
+
+            if pd.notna(tanggal_max):
+                tanggal_sekarang = pd.Timestamp.today().normalize()
+
+                selisih_hari = (
+                    tanggal_sekarang -
+                    tanggal_max.normalize()
+                ).days
+
+                if selisih_hari == 0:
+                    update_terakhir = "Hari ini"
+                elif selisih_hari == 1:
+                    update_terakhir = "Kemarin"
+                else:
+                    update_terakhir = f"{selisih_hari} hari lalu"
+
+                tanggal_update_terakhir = (
+                    tanggal_max.strftime("%d/%m/%Y")
+                )
+
+            else:
+                update_terakhir = "-"
+                tanggal_update_terakhir = None
+
+
+    # =========================
+    # METRIC CARDS
+    # =========================
+    col_web1, col_web2, col_web3 = st.columns(3)
 
     col_web1.metric(
         "Total Update",
@@ -2761,7 +3416,9 @@ with tab5:
     col_web2.metric(
         "Kanal Paling Aktif",
         kanal_aktif,
-        f"{jumlah_kanal_aktif} Update" if jumlah_kanal_aktif > 0 else None
+        f"{jumlah_kanal_aktif} Update"
+        if jumlah_kanal_aktif > 0
+        else None
     )
 
     col_web3.metric(
@@ -2772,7 +3429,7 @@ with tab5:
     )
 
     # 2. FORM INPUT SCREENSHOT UPDATE
-    with st.expander("📸 Upload Screenshot", expanded=True):
+    with st.expander("⛶ Upload Screenshot", expanded=True):
             if "web_uploader_version" not in st.session_state:
                 st.session_state["web_uploader_version"] = 0
 
@@ -2789,7 +3446,7 @@ with tab5:
                 # Kalau screenshot lebih dari 1, tampilkan sorter
                 if len(uploaded_webs) > 1:
 
-                    st.markdown("#### 🔀 Urutan Screenshot")
+                    st.markdown("###### ⇄ Urutan Screenshot")
                     st.caption(
                         "Drag nama file untuk menyesuaikan urutan bukti "
                         "sebelum dianalisis."
@@ -2807,7 +3464,32 @@ with tab5:
                     urutan_web = sort_items(
                         list(label_to_file_web.keys()),
                         direction="vertical",
-                        key=f"web_sorter_{file_signature_web}"
+                        key=f"web_sorter_{file_signature_web}",
+                        custom_style="""
+                        .sortable-component,
+                        .sortable-container,
+                        ul,
+                        ol {
+                            background: transparent !important;
+                            border: none !important;
+                            box-shadow: none !important;
+                            padding: 0 !important;
+                            margin: 0 !important;
+                        }
+
+                        .sortable-item {
+                            background: #F3F8FE !important;
+                            color: #16477C !important;
+                            border: 1px solid #D6E4F2 !important;
+                            border-radius: 8px !important;
+                            min-height: 30px !important;
+                            padding: 2px 7px !important;
+                            margin-bottom: 3px !important;
+                            font-size: 13px !important;
+                            font-weight: 500 !important;
+                            box-shadow: none !important;
+                        }
+                        """
                     )
 
                     ordered_webs = [
@@ -2819,18 +3501,16 @@ with tab5:
                 else:
                     ordered_webs = uploaded_webs
 
-
                 # Preview
-                st.markdown("#### 👀 Preview Screenshot")
+                st.markdown("###### 👁 Preview Screenshot")
 
                 kolom_preview_web = st.columns(
-                    min(len(ordered_webs), 3)
+                    [1, 1, 1, 1],
+                    gap="small"
                 )
 
                 for idx, file in enumerate(ordered_webs):
-                    kolom = kolom_preview_web[
-                        idx % len(kolom_preview_web)
-                    ]
+                    kolom = kolom_preview_web[idx % 4]
 
                     with kolom:
                         st.image(
@@ -2839,11 +3519,9 @@ with tab5:
                             use_container_width=True
                         )
 
-
                 # Analisis
                 if st.button(
                     "Analisis Screenshot",
-                    type="primary",
                     key="btn_analisis_web"
                 ):
                     try:
@@ -2867,7 +3545,7 @@ with tab5:
 
                     hasil_web = st.session_state["hasil_analisis_web"]
 
-                    st.markdown("### ✨ Hasil Analisis")
+                    st.markdown("### Hasil Analisis")
 
                     tanggal_web_review = st.text_input(
                         "Tanggal Update",
@@ -2927,19 +3605,33 @@ with tab5:
                             )
 
     # 3. TABEL REKAPITULASI LOG UPDATE WEBSITE
-    st.write("### 📑 Tabel Rekapitulasi Log Update Kanal Digital")
+    st.write("##### 🗐 Tabel Rekapitulasi Log Update Kanal Digital")
 
     if df_website.empty:
         st.info("Belum ada data pemutakhiran kanal digital yang tersimpan.")
+
+    elif df_website_tampil.empty:
+        st.info("Tidak ada data pada periode yang dipilih.")
+
     else:
         st.dataframe(
-            df_website,
+            df_website_tampil,
             use_container_width=True,
             hide_index=True,
             column_config={
                 "Bukti": st.column_config.LinkColumn(
                     "Bukti",
-                    display_text="📂 Buka Bukti"
+                    display_text="🖿 Buka Bukti"
                 )
             }
         )
+
+st.markdown(
+    """
+    <div class="jala-footer">
+        © 2026 JALA-SERIBU · 
+        <span class="footer-bps">BPS Kabupaten Kepulauan Seribu</span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
