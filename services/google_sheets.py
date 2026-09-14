@@ -3,7 +3,7 @@ import gspread
 import pandas as pd
 from google.oauth2.service_account import Credentials
 
-
+@st.cache_data(ttl=3600, show_spinner=False)
 def get_google_sheet_data():
     config = st.secrets["google_sheets"]
 
@@ -71,6 +71,9 @@ def append_pengaduan_row(row_data):
         value_input_option="USER_ENTERED"
     )
 
+    get_pengaduan_data.clear()
+
+@st.cache_data(ttl=300, show_spinner=False)
 def get_pengaduan_data():
     config = st.secrets["google_sheets"]
     db_config = st.secrets["jala_seribu_db"]
@@ -122,6 +125,9 @@ def append_pemutakhiran_row(row_data):
         value_input_option="USER_ENTERED"
     )
 
+    get_pemutakhiran_data.clear()
+
+@st.cache_data(ttl=300, show_spinner=False)
 def get_pemutakhiran_data():
     config = st.secrets["google_sheets"]
     db_config = st.secrets["jala_seribu_db"]
@@ -173,6 +179,9 @@ def append_faq_row(row_data):
         value_input_option="USER_ENTERED"
     )
 
+    get_faq_data.clear()
+
+@st.cache_data(ttl=300, show_spinner=False)
 def get_faq_data():
     config = st.secrets["google_sheets"]
     db_config = st.secrets["jala_seribu_db"]
@@ -198,6 +207,7 @@ def get_faq_data():
 
     return pd.DataFrame(data)
 
+@st.cache_data(ttl=300, show_spinner=False)
 def get_skd_data():
     config = st.secrets["google_sheets"]
     db_config = st.secrets["jala_seribu_db"]
@@ -267,6 +277,8 @@ def upsert_skd_row(tanggal_cacah, nama, status_kuesioner):
                 ]]
             )
 
+            get_skd_data.clear()
+
             return "updated"
 
     # Kalau nama belum ditemukan → tambah baris baru
@@ -278,5 +290,7 @@ def upsert_skd_row(tanggal_cacah, nama, status_kuesioner):
         ],
         value_input_option="USER_ENTERED"
     )
+
+    get_skd_data.clear()
 
     return "inserted"
