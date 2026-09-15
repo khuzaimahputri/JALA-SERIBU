@@ -256,16 +256,37 @@ def upsert_skd_row(tanggal_cacah, nama, status_kuesioner):
 
     data = worksheet.get_all_records()
 
-    # Cari berdasarkan nama
-    nama_baru = str(nama).strip().lower()
+    def buat_kunci(tanggal, nama):
+        tanggal_dt = pd.to_datetime(
+            tanggal,
+            dayfirst=True,
+            errors="coerce"
+        )
+
+        nama_bersih = str(nama).strip().lower()
+
+        if pd.isna(tanggal_dt):
+            return (nama_bersih, str(tanggal))
+
+        return (
+            nama_bersih,
+            tanggal_dt.year,
+            tanggal_dt.quarter
+        )
+
+    # Identitas responden = Nama + Tahun + Triwulan
+    kunci_baru = buat_kunci(
+        tanggal_cacah,
+        nama
+    )
 
     for index, row in enumerate(data):
-        nama_lama = str(row.get("Nama", "")).strip().lower()
+        kunci_lama = buat_kunci(
+            row.get("Tanggal Cacah", ""),
+            row.get("Nama", "")
+        )
 
-        if nama_lama == nama_baru:
-            # +2 karena:
-            # index Python mulai dari 0
-            # baris 1 Google Sheets adalah header
+        if kunci_lama == kunci_baru:
             sheet_row = index + 2
 
             worksheet.update(
@@ -278,10 +299,9 @@ def upsert_skd_row(tanggal_cacah, nama, status_kuesioner):
             )
 
             get_skd_data.clear()
-
             return "updated"
 
-    # Kalau nama belum ditemukan → tambah baris baru
+    # Nama + tahun + triwulan belum ada
     worksheet.append_row(
         [
             tanggal_cacah,
@@ -316,19 +336,37 @@ def upsert_skd_rows_batch(rows):
         "Progres SKD"
     )
 
-    # BACA GOOGLE SHEETS HANYA SEKALI
+    # Baca Google Sheets hanya sekali
     data = worksheet.get_all_records()
 
-    # Buat indeks nama -> nomor baris Google Sheets
-    nama_ke_baris = {}
+    def buat_kunci(tanggal, nama):
+        tanggal_dt = pd.to_datetime(
+            tanggal,
+            dayfirst=True,
+            errors="coerce"
+        )
+
+        nama_bersih = str(nama).strip().lower()
+
+        if pd.isna(tanggal_dt):
+            return (nama_bersih, str(tanggal))
+
+        return (
+            nama_bersih,
+            tanggal_dt.year,
+            tanggal_dt.quarter
+        )
+
+    # Indeks: Nama + Tahun + Triwulan -> baris Google Sheets
+    kunci_ke_baris = {}
 
     for index, row in enumerate(data):
-        nama_lama = str(
+        kunci = buat_kunci(
+            row.get("Tanggal Cacah", ""),
             row.get("Nama", "")
-        ).strip().lower()
+        )
 
-        if nama_lama:
-            nama_ke_baris[nama_lama] = index + 2
+        kunci_ke_baris[kunci] = index + 2
 
     inserted = 0
     updated = 0
@@ -338,10 +376,13 @@ def upsert_skd_rows_batch(rows):
         nama = item["nama"]
         status_kuesioner = item["status_kuesioner"]
 
-        nama_baru = str(nama).strip().lower()
+        kunci_baru = buat_kunci(
+            tanggal_cacah,
+            nama
+        )
 
-        if nama_baru in nama_ke_baris:
-            sheet_row = nama_ke_baris[nama_baru]
+        if kunci_baru in kunci_ke_baris:
+            sheet_row = kunci_ke_baris[kunci_baru]
 
             worksheet.update(
                 range_name=f"A{sheet_row}:C{sheet_row}",
@@ -364,13 +405,9 @@ def upsert_skd_rows_batch(rows):
                 value_input_option="USER_ENTERED"
             )
 
-            # Supaya nama yang baru ditambahkan juga dianggap sudah ada
-            # jika muncul lagi dalam batch yang sama.
-            nama_ke_baris[nama_baru] = len(data) + inserted + 2
-
+            kunci_ke_baris[kunci_baru] = len(data) + inserted + 2
             inserted += 1
 
-    # Clear cache CUMA SEKALI setelah semua selesai
     get_skd_data.clear()
 
     return {
