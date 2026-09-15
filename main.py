@@ -1520,13 +1520,23 @@ def analisis_screenshot_pemutakhiran(files):
            - Untuk Instagram, gunakan aturan:
              Feed Post = unggahan feed satu gambar/foto biasa.
              Carousel = unggahan feed yang terdiri dari beberapa slide/gambar.
-             Infografis = unggahan visual informatif yang menyajikan data, statistik,
+             Infografis = unggahan visual informatif yang harus menyajikan data, statistik,
              fakta, atau informasi dalam bentuk grafis.
              Reels = konten video Reels.
              Story = konten Instagram Story.
 
         4. topik_konten
-           Judul atau ringkasan singkat konten yang diperbarui.
+            Identifikasi topik utama/substansi dari konten yang diperbarui.
+            - Baca dan gabungkan informasi yang terlihat pada konten,
+              termasuk teks pada gambar/video dan caption.
+            - Utamakan informasi yang paling spesifik menjelaskan
+              kegiatan, informasi, data, atau materi yang dipublikasikan.
+            - Jangan hanya menyalin caption jika terdapat informasi
+              yang lebih substantif pada gambar/video.
+            - Jika terdapat nama kegiatan/program yang jelas,
+              pertahankan nama tersebut dalam hasil.
+            - Tulis sebagai judul/ringkasan singkat dan informatif.
+            - Jangan mengarang informasi yang tidak terlihat.
 
         Jangan mengarang informasi yang tidak terlihat.
         """
