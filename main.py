@@ -1517,6 +1517,13 @@ def analisis_screenshot_pemutakhiran(files):
            - YouTube: Video, Shorts
            - Kanal lain: gunakan jenis konten yang paling sesuai dengan yang terlihat.
            Jika tidak dapat dipastikan, isi "-".
+           - Untuk Instagram, gunakan aturan:
+             Feed Post = unggahan feed satu gambar/foto biasa.
+             Carousel = unggahan feed yang terdiri dari beberapa slide/gambar.
+             Infografis = unggahan visual informatif yang menyajikan data, statistik,
+             fakta, atau informasi dalam bentuk grafis.
+             Reels = konten video Reels.
+             Story = konten Instagram Story.
 
         4. topik_konten
            Judul atau ringkasan singkat konten yang diperbarui.
