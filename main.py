@@ -22,7 +22,6 @@ from services.google_sheets import (
     append_faq_row,
     get_faq_data,
     get_skd_data,
-    upsert_skd_row,
     upsert_skd_rows_batch,
 )
 
