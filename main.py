@@ -23,6 +23,7 @@ from services.google_sheets import (
     get_faq_data,
     get_skd_data,
     upsert_skd_row,
+    upsert_skd_rows_batch,
 )
 
 # --- CONFIG HALAMAN ---
@@ -3238,20 +3239,12 @@ with tab4:
                             try:
                                 with st.spinner("Menyimpan progres SKD..."):
 
-                                    inserted = 0
-                                    updated = 0
+                                    hasil_simpan = upsert_skd_rows_batch(
+                                        st.session_state["hasil_analisis_skd"]
+                                    )
 
-                                    for item in st.session_state["hasil_analisis_skd"]:
-                                        hasil = upsert_skd_row(
-                                            item["tanggal_cacah"],
-                                            item["nama"],
-                                            item["status_kuesioner"]
-                                        )
-
-                                        if hasil == "inserted":
-                                            inserted += 1
-                                        elif hasil == "updated":
-                                            updated += 1
+                                    inserted = hasil_simpan["inserted"]
+                                    updated = hasil_simpan["updated"]
 
                                 st.session_state["skd_simpan_sukses"] = {
                                     "inserted": inserted,

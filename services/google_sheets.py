@@ -294,3 +294,86 @@ def upsert_skd_row(tanggal_cacah, nama, status_kuesioner):
     get_skd_data.clear()
 
     return "inserted"
+
+def upsert_skd_rows_batch(rows):
+    config = st.secrets["google_sheets"]
+    db_config = st.secrets["jala_seribu_db"]
+
+    creds = Credentials.from_service_account_info(
+        dict(config),
+        scopes=[
+            "https://www.googleapis.com/auth/spreadsheets"
+        ]
+    )
+
+    client = gspread.authorize(creds)
+
+    spreadsheet = client.open_by_key(
+        db_config["spreadsheet_id"]
+    )
+
+    worksheet = spreadsheet.worksheet(
+        "Progres SKD"
+    )
+
+    # BACA GOOGLE SHEETS HANYA SEKALI
+    data = worksheet.get_all_records()
+
+    # Buat indeks nama -> nomor baris Google Sheets
+    nama_ke_baris = {}
+
+    for index, row in enumerate(data):
+        nama_lama = str(
+            row.get("Nama", "")
+        ).strip().lower()
+
+        if nama_lama:
+            nama_ke_baris[nama_lama] = index + 2
+
+    inserted = 0
+    updated = 0
+
+    for item in rows:
+        tanggal_cacah = item["tanggal_cacah"]
+        nama = item["nama"]
+        status_kuesioner = item["status_kuesioner"]
+
+        nama_baru = str(nama).strip().lower()
+
+        if nama_baru in nama_ke_baris:
+            sheet_row = nama_ke_baris[nama_baru]
+
+            worksheet.update(
+                range_name=f"A{sheet_row}:C{sheet_row}",
+                values=[[
+                    tanggal_cacah,
+                    nama,
+                    status_kuesioner
+                ]]
+            )
+
+            updated += 1
+
+        else:
+            worksheet.append_row(
+                [
+                    tanggal_cacah,
+                    nama,
+                    status_kuesioner
+                ],
+                value_input_option="USER_ENTERED"
+            )
+
+            # Supaya nama yang baru ditambahkan juga dianggap sudah ada
+            # jika muncul lagi dalam batch yang sama.
+            nama_ke_baris[nama_baru] = len(data) + inserted + 2
+
+            inserted += 1
+
+    # Clear cache CUMA SEKALI setelah semua selesai
+    get_skd_data.clear()
+
+    return {
+        "inserted": inserted,
+        "updated": updated
+    }
