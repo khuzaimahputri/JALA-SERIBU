@@ -1719,9 +1719,21 @@ def analisis_screenshot_skd(files):
 
         Jangan mengarang responden atau status yang tidak terlihat.
 
-        Jika nama yang sama terlihat lebih dari sekali pada screenshot,
-        keluarkan satu record dengan kondisi yang paling mutakhir /
-        paling lengkap.
+        PENTING:
+        - Ekstrak SETIAP baris responden yang terlihat.
+        - Nama yang sama dapat muncul lebih dari sekali dan TIDAK otomatis
+          dianggap sebagai duplikat.
+        - Jika nama yang sama memiliki tanggal_cacah yang berbeda,
+          keluarkan sebagai record yang TERPISAH.
+        - Jangan menggabungkan atau menghapus record hanya karena nama sama.
+        - Anggap record sebagai duplikat hanya jika nama DAN tanggal_cacah
+          sama persis.
+
+        Contoh:
+        11/03/2026 | Muhamad Safi'i | Sudah terverifikasi
+        25/06/2026 | Muhamad Safi'i | Sudah terverifikasi
+
+        Harus menghasilkan DUA record terpisah.
         """
     )
 
