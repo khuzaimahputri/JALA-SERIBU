@@ -1551,8 +1551,10 @@ def analisis_screenshot_faq(files):
             )
         )
 
+
+    tahun_sekarang = datetime.now().year
     contents.append(
-        """
+        f"""
         Seluruh gambar di atas adalah rangkaian screenshot
         dari SATU pertanyaan publik yang sama dan sudah diberikan
         dalam urutan percakapan yang benar.
@@ -1562,9 +1564,15 @@ def analisis_screenshot_faq(files):
         Ekstrak:
 
         1. tanggal
-           Tanggal awal pertanyaan jika terlihat.
+           Ambil tanggal awal pertanyaan yang terlihat pada screenshot.
            Gunakan format DD/MM/YYYY.
-           Jika tidak dapat dipastikan, isi "-".
+
+           Aturan tahun:
+           - Jika tanggal, bulan, dan tahun terlihat jelas, gunakan tahun yang terlihat.
+           - Jika hanya tanggal dan bulan yang terlihat tetapi tahun tidak ditampilkan,
+             gunakan tahun saat ini: {tahun_sekarang}.
+           - Jangan menebak atau mengarang tahun lain yang tidak terlihat.
+           - Jika tanggal dan bulan tidak dapat dipastikan, isi "-".
 
         2. platform
            Platform tempat pertanyaan diterima.
