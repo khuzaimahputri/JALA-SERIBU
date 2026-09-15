@@ -1484,8 +1484,9 @@ def analisis_screenshot_pemutakhiran(files):
             )
         )
 
+    tahun_sekarang = datetime.now().year
     contents.append(
-        """
+        f"""
         Seluruh gambar di atas adalah bukti dari SATU pemutakhiran
         kanal digital yang sama.
 
@@ -1494,9 +1495,14 @@ def analisis_screenshot_pemutakhiran(files):
         Ekstrak:
 
         1. tanggal_update
-           Tanggal pemutakhiran/konten jika terlihat.
+           Ambil tanggal publikasi/pemutakhiran yang terlihat pada screenshot.
            Gunakan format DD/MM/YYYY.
-           Jika tidak dapat dipastikan, isi "-".
+           Aturan tahun:
+           - Jika tanggal, bulan, dan tahun terlihat jelas, gunakan tahun yang terlihat.
+           - Jika hanya tanggal dan bulan yang terlihat tetapi tahun tidak ditampilkan,
+             gunakan tahun saat ini: {tahun_sekarang}.
+           - Jangan menebak atau mengarang tahun lain.
+           - Jika tanggal dan bulan tidak dapat dipastikan, isi "-".
 
         2. kanal_digital
            Nama kanal atau platform yang diperbarui.
