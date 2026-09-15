@@ -1377,6 +1377,7 @@ class HasilPengaduan(BaseModel):
 class HasilPemutakhiran(BaseModel):
     tanggal_update: str
     kanal_digital: str
+    jenis_konten: str
     topik_konten: str
 
 class HasilFAQ(BaseModel):
@@ -1502,7 +1503,16 @@ def analisis_screenshot_pemutakhiran(files):
            Contoh: Website BPS, Instagram, Portal PPID,
            Facebook, YouTube, atau kanal lain yang terlihat.
 
-        3. topik_konten
+        3. jenis_konten
+           Identifikasi jenis/format konten yang terlihat.
+           Contoh:
+           - Website: Tabel, Publikasi, Infografis, Berita, Halaman Web
+           - Instagram: Reels, Feed Post, Carousel, Story, Infografis
+           - YouTube: Video, Shorts
+           - Kanal lain: gunakan jenis konten yang paling sesuai dengan yang terlihat.
+           Jika tidak dapat dipastikan, isi "-".
+
+        4. topik_konten
            Judul atau ringkasan singkat konten yang diperbarui.
 
         Jangan mengarang informasi yang tidak terlihat.
@@ -3556,6 +3566,12 @@ with tab5:
                         key="review_kanal_web"
                     )
 
+                    jenis_web_review = st.text_input(
+                        "Jenis Konten",
+                        value=hasil_web["jenis_konten"],
+                        key="review_jenis_web"
+                    )
+
                     topik_web_review = st.text_area(
                         "Topik Konten",
                         value=hasil_web["topik_konten"],
@@ -3585,6 +3601,7 @@ with tab5:
                                 append_pemutakhiran_row([
                                     tanggal_web_review,
                                     kanal_web_review,
+                                    jenis_web_review,
                                     topik_web_review,
                                     folder_link_web
                                 ])
