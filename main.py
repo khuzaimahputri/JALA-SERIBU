@@ -1527,14 +1527,10 @@ def analisis_screenshot_pemutakhiran(files):
 
         4. topik_konten
             Identifikasi topik utama/substansi dari konten yang diperbarui.
-            - Baca dan gabungkan informasi yang terlihat pada konten,
-              termasuk teks pada gambar/video dan caption.
-            - Utamakan informasi yang paling spesifik menjelaskan
-              kegiatan, informasi, data, atau materi yang dipublikasikan.
-            - Jangan hanya menyalin caption jika terdapat informasi
-              yang lebih substantif pada gambar/video.
-            - Jika terdapat nama kegiatan/program yang jelas,
-              pertahankan nama tersebut dalam hasil.
+            - Baca dan gabungkan informasi yang terlihat pada konten, termasuk teks pada gambar/video dan caption.
+            - Utamakan informasi yang paling spesifik menjelaskan kegiatan, informasi, data, atau materi yang dipublikasikan.
+            - Jangan hanya menyalin caption jika terdapat informasi yang lebih substantif pada gambar/video.
+            - Jika terdapat nama kegiatan/program yang jelas, pertahankan nama tersebut dalam hasil.
             - Tulis sebagai judul/ringkasan singkat dan informatif.
             - Jangan mengarang informasi yang tidak terlihat.
 
